@@ -87,9 +87,9 @@ function Ecg({ w, h, dark, param, live, gid, compact }: P) {
   const top = compact ? 22 : 28, ph = h - top - (compact ? 4 : 18);
   const [off, setOff] = useState(0);
   useEffect(() => {
-    if (!live || reduced()) return;
+    if (!live) return;
     let raf = 0, last = performance.now();
-    const tick = (now: number) => { setOff((o) => (o + ((now - last) / 1000) * 90) % 100000); last = now; raf = requestAnimationFrame(tick); };
+    const tick = (now: number) => { setOff((o) => (o + ((now - last) / 1000) * 90 * (reduced() ? 0.5 : 1)) % 100000); last = now; raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf);
   }, [live]);
   const pxPerSec = 90, cyc = 60 / bpm, mid = top + ph * 0.62, amp = ph * 0.62;
@@ -404,7 +404,7 @@ function Signal({ w, h, dark, seen, gid, compact }: P) {
         <g key={i}>
           <path d={d} fill="none" stroke={T.line} strokeWidth={1.2} />
           <path d={d} fill="none" stroke={`url(#${gid}l)`} strokeWidth={1.6} pathLength={1} style={drawIn(seen, 1200, i * 120)} />
-          {seen && !reduced() && <circle r={2.6} fill={C.blue}><animateMotion dur={`${2.2 + i * 0.3}s`} repeatCount="indefinite" path={d} /></circle>}
+          {seen && <circle r={2.6} fill={C.blue}><animateMotion dur={`${2.2 + i * 0.3}s`} repeatCount="indefinite" path={d} /></circle>}
           {!compact && <text x={0} y={yy + 4} fontSize={11} fill={T.muted}>{labels[i]}</text>}
         </g>
       ); })}

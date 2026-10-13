@@ -20,7 +20,7 @@ function useCanvas(draw: (g: CanvasRenderingContext2D, w: number, h: number, t: 
     const loop = (t: number) => {
       const dt = Math.min(0.05, (t - last) / 1000); last = t;
       const s = state.current;
-      if (!s.drag && !reduce) s.rot += s.vel * dt;
+      if (!s.drag) s.rot += s.vel * dt * (reduce ? 0.45 : 1);
       if (!s.drag) s.vel += (0.35 - s.vel) * dt * 1.5;
       if (visible) { const r = c.getBoundingClientRect(); g.clearRect(0, 0, r.width, r.height); drawRef.current(g, r.width, r.height, t / 1000, s); }
       raf = requestAnimationFrame(loop);

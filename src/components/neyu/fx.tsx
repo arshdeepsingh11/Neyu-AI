@@ -10,6 +10,9 @@ import { NIcon } from "./icons";
 
 const useIso = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 const prefersReduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+// Motion never stops completely: with the phone's "Reduce Motion" setting on,
+// effects keep moving at a calmer speed (the owner wants them alive everywhere).
+const pace = () => (prefersReduced() ? 0.45 : 1);
 function useVisible<T extends Element>(ref: React.RefObject<T>, margin = "100px") {
   const [v, setV] = useState(false);
   useEffect(() => {
@@ -29,12 +32,17 @@ export function Marquee3D({ items, speed = 38, dark, height = 210 }: { items: Ma
   const tiles = useRef<(HTMLElement | null)[]>([]);
   const vis = useVisible(wrap);
   const slow = useRef(false);
+  // Swipe / drag state: the strip follows the finger, then glides on with the
+  // flick's momentum (either direction) and eases back to its own drift.
+  const drag = useRef({ on: false, id: -1, x: 0, t: 0, vel: 0, moved: 0, push: 0 });
+  const offRef = useRef(0);
   const list = [...items, ...items, ...items];
   const GAP = 150;
   useIso(() => {
     const el = wrap.current; if (!el) return;
-    let off = 0, v = speed, raf = 0, last = performance.now();
+    let v = speed * pace(), raf = 0, last = performance.now();
     const place = () => {
+      const off = offRef.current;
       const W = el.clientWidth, total = list.length * GAP, mid = W / 2;
       tiles.current.forEach((t, i) => {
         if (!t) return;
@@ -50,19 +58,39 @@ export function Marquee3D({ items, speed = 38, dark, height = 210 }: { items: Ma
       });
     };
     place();
-    if (!vis || prefersReduced()) return;
-    const tick = (now: number) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; v += ((slow.current ? speed * 0.15 : speed) - v) * 0.06; off += v * dt; place(); raf = requestAnimationFrame(tick); };
+    if (!vis) return;
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now; const D = drag.current;
+      if (D.on) v = 0;
+      else {
+        if (D.push) { v = D.push; D.push = 0; }
+        const target = (slow.current ? speed * 0.15 : speed) * pace();
+        v += (target - v) * (Math.abs(v) > speed * 2 ? 0.035 : 0.06);
+        offRef.current += v * dt;
+      }
+      place(); raf = requestAnimationFrame(tick);
+    };
     raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf);
   }, [vis, speed, list.length]);
+  const down = (e: React.PointerEvent) => { const D = drag.current; D.on = true; D.id = e.pointerId; D.x = e.clientX; D.t = performance.now(); D.vel = 0; D.moved = 0; };
+  const move = (e: React.PointerEvent) => {
+    const D = drag.current; if (!D.on || e.pointerId !== D.id) return;
+    const dx = e.clientX - D.x, now = performance.now(), dt = Math.max(1, now - D.t);
+    if (D.moved < 6 && Math.abs(dx) + D.moved >= 6) { try { wrap.current?.setPointerCapture(e.pointerId); } catch {} }
+    D.moved += Math.abs(dx); offRef.current -= dx; D.vel = D.vel * 0.6 + (-dx / dt) * 1000 * 0.4; D.x = e.clientX; D.t = now;
+  };
+  const up = (e: React.PointerEvent) => { const D = drag.current; if (!D.on || e.pointerId !== D.id) return; D.on = false; D.push = Math.max(-1800, Math.min(1800, D.vel)); };
   return (
     <div ref={wrap} onMouseEnter={() => (slow.current = true)} onMouseLeave={() => (slow.current = false)} onFocus={() => (slow.current = true)} onBlur={() => (slow.current = false)}
-      style={{ position: "relative", height, perspective: 900, overflow: "hidden", maskImage: "linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)" }}>
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+      onClickCapture={(e) => { if (drag.current.moved > 6) { e.preventDefault(); e.stopPropagation(); } }}
+      style={{ position: "relative", height, perspective: 900, overflow: "hidden", touchAction: "pan-y", cursor: "grab", userSelect: "none", WebkitUserSelect: "none", maskImage: "linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)" }}>
       <div aria-hidden="true" style={{ position: "absolute", left: "50%", top: "50%", width: 168, height: 168, transform: "translate(-50%,-50%)", borderRadius: 40, border: `1px solid ${dark ? "rgba(126,224,192,.35)" : "rgba(31,167,180,.35)"}`, boxShadow: dark ? "0 0 60px rgba(31,167,180,.25)" : "0 0 60px rgba(31,167,180,.18)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d" }}>
         {list.map((it, i) => {
           const Tag = (it.href ? "a" : "div") as "a";
           return (
-            <Tag key={i} ref={(n: HTMLElement | null) => { tiles.current[i] = n; }} href={it.href} aria-hidden={i < items.length || i >= items.length * 2 ? true : undefined} tabIndex={i < items.length || i >= items.length * 2 ? -1 : undefined}
+            <Tag key={i} ref={(n: HTMLElement | null) => { tiles.current[i] = n; }} href={it.href} draggable={false} aria-hidden={i < items.length || i >= items.length * 2 ? true : undefined} tabIndex={i < items.length || i >= items.length * 2 ? -1 : undefined}
               style={{ position: "absolute", top: "50%", left: 0, width: GAP - 22, display: "grid", justifyItems: "center", gap: 10, textDecoration: "none", willChange: "transform", transformStyle: "preserve-3d" }}>
               <span style={{ width: 86, height: 86, borderRadius: 24, display: "grid", placeItems: "center", position: "relative",
                 background: dark ? "linear-gradient(150deg,rgba(255,255,255,.14),rgba(255,255,255,.03))" : "linear-gradient(150deg,#FFFFFF 0%,#EEF6F4 60%,#E4EEF8 100%)",
@@ -124,7 +152,7 @@ export function SphereGallery<T>({ items, render, radius = 340, height = 560, la
           c.style.pointerEvents = front > 0.6 ? "auto" : "none";
           c.style.filter = front < 0.45 ? `blur(${((0.45 - front) * 3).toFixed(1)}px)` : "none";
         });
-        if (!prefersReduced() && !drag.current.on) rot.current.dy += 0.05;
+        if (!drag.current.on) rot.current.dy += 0.05 * pace();
         raf = requestAnimationFrame(apply);
         return;
       }
@@ -138,7 +166,7 @@ export function SphereGallery<T>({ items, render, radius = 340, height = 560, la
         c.style.pointerEvents = facing > 0.55 ? "auto" : "none";
         c.dataset.front = facing > 0.75 ? "1" : "0";
       });
-      if (!prefersReduced() && !drag.current.on) rot.current.dy += 0.04;
+      if (!drag.current.on) rot.current.dy += 0.04 * pace();
       raf = requestAnimationFrame(apply);
     };
     raf = requestAnimationFrame(apply);
@@ -190,7 +218,7 @@ export function PlanetSystem({ type = "verdant", moons = [], height = 420, label
       const W = el.clientWidth, H = el.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
       if (c.width !== W * dpr) { c.width = W * dpr; c.height = H * dpr; c.style.width = W + "px"; c.style.height = H + "px"; }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-      const t = (now - t0) / 1000, rot = prefersReduced() ? 0.6 : t * 0.12;
+      const t = (now - t0) / 1000, rot = t * 0.12 * pace();
       const R = Math.min(W * 0.22, H * 0.3), cx = W / 2, cy = H / 2;
       // planet surface — re-shade at ~30 fps
       if (now - last > 33) {
@@ -212,7 +240,7 @@ export function PlanetSystem({ type = "verdant", moons = [], height = 420, label
       }
       // moons behind the planet
       const mp: { x: number; y: number; r: number; front: boolean }[] = [];
-      const moonAt = (m: Moon, i: number) => { const orb = R * (m.orbit || 1.55 + i * 0.32), sp = m.speed || 0.35 - i * 0.05, a = (prefersReduced() ? i * 1.7 : t * sp) + i * 1.9, tilt = m.tilt ?? 0.32; const x = cx + Math.cos(a) * orb, y = cy + Math.sin(a) * orb * tilt, front = Math.sin(a) > 0; return { x, y, r: (m.r || 9) * (front ? 1.1 : 0.85), front }; };
+      const moonAt = (m: Moon, i: number) => { const orb = R * (m.orbit || 1.55 + i * 0.32), sp = m.speed || 0.35 - i * 0.05, a = t * sp * pace() + i * 1.9, tilt = m.tilt ?? 0.32; const x = cx + Math.cos(a) * orb, y = cy + Math.sin(a) * orb * tilt, front = Math.sin(a) > 0; return { x, y, r: (m.r || 9) * (front ? 1.1 : 0.85), front }; };
       moons.forEach((m, i) => { mp[i] = moonAt(m, i); });
       // orbits
       ctx.lineWidth = 1;
@@ -226,7 +254,7 @@ export function PlanetSystem({ type = "verdant", moons = [], height = 420, label
       const rim = ctx.createRadialGradient(cx, cy, R * 0.8, cx, cy, R * 1.02); rim.addColorStop(0, "rgba(255,255,255,0)"); rim.addColorStop(1, "rgba(190,240,230,.45)"); ctx.fillStyle = rim; ctx.beginPath(); ctx.arc(cx, cy, R * 1.01, 0, Math.PI * 2); ctx.fill();
       moons.forEach((m, i) => { if (mp[i].front) drawMoon(m, i); });
       moonPos.current = mp;
-      if (vis && !prefersReduced()) raf = requestAnimationFrame(draw);
+      if (vis) raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
@@ -263,13 +291,13 @@ export function SignalConvergence({ height = 380, labels = ["Results", "Imaging"
       if (c.width !== W * dpr) { c.width = W * dpr; c.height = H * dpr; c.style.width = W + "px"; c.style.height = H + "px"; }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
       const T = tilt.current; T.x += (T.tx - T.x) * 0.05; T.y += (T.ty - T.y) * 0.05;
-      const rotY = now / 9000 + T.x * 0.6, rotX = 0.25 + T.y * 0.4, R = Math.min(W, H * 1.6) * 0.42, F = 900;
+      const rotY = (now / 9000) * pace() + T.x * 0.6, rotX = 0.25 + T.y * 0.4, R = Math.min(W, H * 1.6) * 0.42, F = 900;
       const proj = (x: number, y: number, z: number) => { const x1 = x * Math.cos(rotY) - z * Math.sin(rotY), z1 = x * Math.sin(rotY) + z * Math.cos(rotY); const y1 = y * Math.cos(rotX) - z1 * Math.sin(rotX), z2 = y * Math.sin(rotX) + z1 * Math.cos(rotX); const k = F / (F + z2 * R); return { x: W / 2 + x1 * R * k, y: H / 2 + y1 * R * k, k, z: z2 }; };
       const pathPt = (s: (typeof S)[number], t: number, w = 0) => { const u = 1 - t; const bx = s.x * (u * u + 0.4 * u * t) + w * u * t, by = s.y * (u * u + 0.4 * u * t) + s.y * 0.3 * u * t, bz = s.z * (u * u + 0.4 * u * t); return proj(bx, by, bz); };
       // streams
       S.forEach((s) => { ctx.beginPath(); for (let i = 0; i <= 30; i++) { const p = pathPt(s, i / 30); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } const g = ctx.createLinearGradient(proj(s.x, s.y, s.z).x, proj(s.x, s.y, s.z).y, W / 2, H / 2); g.addColorStop(0, dark ? "rgba(126,224,192,.15)" : "rgba(47,191,148,.18)"); g.addColorStop(1, dark ? "rgba(90,160,255,.55)" : "rgba(34,115,214,.5)"); ctx.strokeStyle = g; ctx.lineWidth = 1.4; ctx.stroke(); });
       // particles
-      parts.forEach((p) => { if (!prefersReduced()) p.t += p.v * dt; if (p.t > 1) { p.t = 0; p.s = Math.floor(Math.random() * S.length); } const q = pathPt(S[p.s], p.t, p.w); ctx.fillStyle = `rgba(${dark ? "150,230,210" : "31,167,180"},${0.35 + p.t * 0.6})`; ctx.beginPath(); ctx.arc(q.x, q.y, 1.2 + p.t * 2.2 * q.k, 0, Math.PI * 2); ctx.fill(); });
+      parts.forEach((p) => { p.t += p.v * dt * pace(); if (p.t > 1) { p.t = 0; p.s = Math.floor(Math.random() * S.length); } const q = pathPt(S[p.s], p.t, p.w); ctx.fillStyle = `rgba(${dark ? "150,230,210" : "31,167,180"},${0.35 + p.t * 0.6})`; ctx.beginPath(); ctx.arc(q.x, q.y, 1.2 + p.t * 2.2 * q.k, 0, Math.PI * 2); ctx.fill(); });
       // source nodes + labels
       S.map((s) => ({ s, p: proj(s.x, s.y, s.z) })).sort((a, b) => b.p.z - a.p.z).forEach(({ s, p }) => {
         ctx.fillStyle = dark ? "rgba(13,27,40,.95)" : "#fff"; ctx.strokeStyle = dark ? "rgba(255,255,255,.28)" : "rgba(14,27,44,.16)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x, p.y, 7 * p.k, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -283,7 +311,7 @@ export function SignalConvergence({ height = 380, labels = ["Results", "Imaging"
       const core = ctx.createLinearGradient(hp.x - 30, hp.y - 30, hp.x + 30, hp.y + 30); core.addColorStop(0, "#2FBF94"); core.addColorStop(0.55, "#1FA7B4"); core.addColorStop(1, "#2273D6"); ctx.fillStyle = core; ctx.beginPath(); ctx.arc(hp.x, hp.y, 30, 0, Math.PI * 2); ctx.fill();
       const sh = ctx.createRadialGradient(hp.x - 10, hp.y - 12, 2, hp.x, hp.y, 30); sh.addColorStop(0, "rgba(255,255,255,.6)"); sh.addColorStop(0.4, "rgba(255,255,255,0)"); ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(hp.x, hp.y, 30, 0, Math.PI * 2); ctx.fill();
       ctx.font = "600 13px var(--font-dm-sans), system-ui, sans-serif"; ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.fillText(hub, hp.x, hp.y + 4.5);
-      if (vis && !prefersReduced()) raf = requestAnimationFrame(draw);
+      if (vis) raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
@@ -370,8 +398,8 @@ export function BeamFlow({ height = "100%", style }: { height?: number | string;
       const scale = 0.6, W = Math.max(1, Math.floor(el.clientWidth * scale)), H = Math.max(1, Math.floor(el.clientHeight * scale));
       if (c.width !== W || c.height !== H) { c.width = W; c.height = H; gl.viewport(0, 0, W, H); }
       sm.x += (mouse.current.x - sm.x) * 0.04; sm.y += (mouse.current.y - sm.y) * 0.04;
-      gl.uniform2f(ur, W, H); gl.uniform1f(ut, prefersReduced() ? 4 : (now - t0) / 1000); gl.uniform2f(um, sm.x, sm.y); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      if (vis && !prefersReduced()) raf = requestAnimationFrame(draw);
+      gl.uniform2f(ur, W, H); gl.uniform1f(ut, ((now - t0) / 1000) * pace()); gl.uniform2f(um, sm.x, sm.y); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      if (vis) raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
@@ -411,6 +439,10 @@ export function EvervaultCard({ children, height = 260, style }: { children: Rea
 export function PillNav<K extends string>({ tabs, value, onChange, dark, label, size = "md" }: { tabs: { k: K; label: string; icon?: string; href?: string }[]; value: K; onChange?: (k: K) => void; dark?: boolean; label: string; size?: "sm" | "md" }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [pill, setPill] = useState({ x: 0, w: 0, y: 0, h: 0 });
+  // Soft fade on the side(s) that have more tabs, so a cut-off tab reads as "scroll for more".
+  const [edge, setEdge] = useState({ l: false, r: false });
+  const edges = useCallback(() => { const w = wrap.current; if (!w) return; const l = w.scrollLeft > 4, r = w.scrollLeft + w.clientWidth < w.scrollWidth - 4; setEdge((e) => (e.l === l && e.r === r ? e : { l, r })); }, []);
+  useEffect(() => { edges(); window.addEventListener("resize", edges); return () => window.removeEventListener("resize", edges); }, [edges, tabs.length]);
   useIso(() => {
     const el = wrap.current?.querySelector<HTMLElement>(`[data-k="${value}"]`); if (!el) return;
     const set = () => setPill({ x: el.offsetLeft, w: el.offsetWidth, y: el.offsetTop, h: el.offsetHeight });
@@ -421,8 +453,9 @@ export function PillNav<K extends string>({ tabs, value, onChange, dark, label, 
   }, [value, tabs.length]);
   const h = size === "sm" ? 38 : 44;
   return (
-    <div role="tablist" aria-label={label} ref={wrap} className="neyu-noscroll" style={{ position: "relative", display: "flex", gap: 4, padding: 5, borderRadius: 999, overflowX: "auto", maxWidth: "100%", scrollbarWidth: "none",
-      background: dark ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.82)", border: `1px solid ${dark ? "rgba(255,255,255,.14)" : "rgba(14,27,44,.08)"}`, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", boxShadow: dark ? "none" : "0 14px 30px -24px rgba(14,27,44,.4)" }}>
+    <div role="tablist" aria-label={label} ref={wrap} onScroll={edges} className="neyu-noscroll" style={{ position: "relative", display: "flex", gap: 4, padding: 5, borderRadius: 999, overflowX: "auto", maxWidth: "100%", scrollbarWidth: "none",
+      ...(edge.l || edge.r ? { maskImage: `linear-gradient(90deg, ${edge.l ? "transparent 0, #000 36px" : "#000 0"}, ${edge.r ? "#000 calc(100% - 36px), transparent 100%" : "#000 100%"})`, WebkitMaskImage: `linear-gradient(90deg, ${edge.l ? "transparent 0, #000 36px" : "#000 0"}, ${edge.r ? "#000 calc(100% - 36px), transparent 100%" : "#000 100%"})` } : {}),
+      background: dark ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.95)", border: `1px solid ${dark ? "rgba(255,255,255,.14)" : "rgba(14,27,44,.08)"}`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(10px)", boxShadow: dark ? "none" : "0 14px 30px -24px rgba(14,27,44,.4)" }}>
       <span aria-hidden="true" style={{ position: "absolute", left: pill.x, top: pill.y, width: pill.w, height: pill.h, borderRadius: 999, background: dark ? "linear-gradient(120deg,#2FBF94,#2273D6)" : "#0E1B2C", transition: "left .35s cubic-bezier(.2,.8,.2,1), width .35s cubic-bezier(.2,.8,.2,1)", boxShadow: "0 8px 18px -10px rgba(14,27,44,.6)" }} />
       {tabs.map((t) => {
         const on = t.k === value;
@@ -471,7 +504,7 @@ export function Cylinder3D<T>({ items, render, detail, cardW = 220, cardH = 250,
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now; const s = st.current;
       if (s.target != null) { let d = ((s.target - s.a + 540) % 360) - 180; s.a += d * Math.min(1, dt * 6); if (Math.abs(d) < 0.2) { s.a = s.target; s.target = null; } }
-      else if (!s.hover && !s.drag && open == null && !prefersReduced()) s.a -= 9 * dt;
+      else if (!s.hover && !s.drag && open == null) s.a -= 9 * dt * pace();
       if (ring.current) ring.current.style.transform = `translateZ(${-R}px) rotateY(${s.a}deg)`;
       const f = ((Math.round(-s.a / step) % n) + n) % n; setFront((p) => (p === f ? p : f));
       raf = requestAnimationFrame(loop);

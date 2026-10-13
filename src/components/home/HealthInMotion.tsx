@@ -102,7 +102,7 @@ function Row({ cards, dir, vel, onAsk }: { cards: Card[]; dir: 1 | -1; vel: Reac
   useEffect(() => {
     const el = track.current;
     if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0.45 : 1;
     let x = 0, raf = 0, last = 0, visible = true, skew = 0;
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { rootMargin: "200px" });
     io.observe(el);
@@ -113,7 +113,7 @@ function Row({ cards, dir, vel, onAsk }: { cards: Card[]; dir: 1 | -1; vel: Reac
         const half = el.scrollWidth / 2;
         const v = vel.current; // page scroll velocity (px/frame, smoothed)
         const boost = Math.max(-6, Math.min(6, v * 0.35));
-        const base = hover.current ? 0 : 38; // px/sec
+        const base = hover.current ? 0 : 38 * calm; // px/sec
         const speed = (base + Math.abs(boost) * 60) * dir * (boost < -0.2 ? -1 : 1);
         x -= speed * dt;
         if (x <= -half) x += half;
