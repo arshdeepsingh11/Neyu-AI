@@ -37,6 +37,10 @@ function AlbaPanel({ mobile }: { mobile: boolean }) {
   const [speechSupported, setSpeechSupported] = useState(true);
   const recognitionRef = useRef<any>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  // The message box grows with what is typed (one line when empty), so text and
+  // the hint are never cut in half.
+  const boxRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { const t = boxRef.current; if (!t) return; t.style.height = "auto"; t.style.height = Math.min(120, Math.max(44, t.scrollHeight)) + "px"; }, [input]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages, loading]);
 
@@ -133,13 +137,15 @@ function AlbaPanel({ mobile }: { mobile: boolean }) {
         <div style={{ padding: "12px 14px 14px", borderTop: "1px solid #E6F3F8", paddingBottom: mobile ? "max(14px, env(safe-area-inset-bottom))" : 14 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "flex-end", background: "#FDFCFA", border: "1px solid #C3E3F2", borderRadius: 14, padding: "6px 6px 6px 14px" }}>
             <textarea
+              ref={boxRef}
               aria-label="Message Neyu"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
               rows={1}
-              placeholder={listening ? "Listening…" : "Ask Neyu anything about your health…"}
-              style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", resize: "none", fontSize: 16, lineHeight: 1.4, padding: "10px 0", maxHeight: 120 }}
+              placeholder={listening ? "Listening…" : mobile ? "Ask Neyu anything…" : "Ask Neyu anything about your health…"}
+              className="neyu-msgbox"
+              style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", resize: "none", fontSize: 16, lineHeight: "22px", padding: "11px 0", height: 44, maxHeight: 120, boxSizing: "border-box", overflowY: "auto", alignSelf: "center" }}
             />
             {speechSupported && (
               <button onClick={toggleListening} aria-label={listening ? "Stop listening" : "Speak to Neyu"} title="Speak to Neyu" style={{ width: 44, height: 44, border: 0, borderRadius: 10, background: listening ? "#9B2317" : "#E6F3F8", color: listening ? "#FFF7F5" : "#1D5FA8", display: "grid", placeItems: "center", fontSize: 18, flex: "none" }}>
