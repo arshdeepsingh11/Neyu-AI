@@ -55,7 +55,7 @@ const INDICATION_OPTIONS = [
   "Post-surgical angiographic intervention follow-up",
 ];
 
-const SYSTEM_PROMPT = `You are a data-extraction assistant for NEYU Health, a cardiology clinic in Calgary, Alberta. You read a free-text description (written by either a referring physician or a patient) and extract ONLY the information explicitly stated or clearly and directly implied. You NEVER invent, guess, or assume information that isn't there.
+const SYSTEM_PROMPT = `You are a data-extraction assistant for ANRA Health, a cardiology clinic in Calgary, Alberta. You read a free-text description (written by either a referring physician or a patient) and extract ONLY the information explicitly stated or clearly and directly implied. You NEVER invent, guess, or assume information that isn't there.
 
 Respond with ONLY valid JSON, no markdown, matching exactly this shape:
 {
@@ -97,9 +97,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Model updated from deprecated gemini-2.0-flash to gemini-2.5-flash-lite.
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || "gemini-3.5-flash-lite"}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,7 +107,7 @@ export async function POST(req: NextRequest) {
           contents: [{ role: "user", parts: [{ text: description }] }],
           generationConfig: {
             temperature: 0.2,
-            maxOutputTokens: 500,
+            maxOutputTokens: 4096,
             responseMimeType: "application/json",
           },
         }),

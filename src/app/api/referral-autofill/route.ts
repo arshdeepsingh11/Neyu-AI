@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { geminiJSON, type AiPart } from "@backend/ai";
 
-const SYSTEM_PROMPT = `You extract structured referral data either from a short free-text description written by a referring physician or staff member, OR from a photo of an actual physical referral document, for NEYU Health.
+const SYSTEM_PROMPT = `You extract structured referral data either from a short free-text description written by a referring physician or staff member, OR from a photo of an actual physical referral document, for ANRA Health.
 
 If given an image, read it carefully — it may be a fax, a handwritten note, or a printed referral form. Extract whatever is legible. If a field isn't present or isn't legible, leave it empty rather than guessing.
 
@@ -35,49 +36,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing description or imageBase64" }, { status: 400 });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
-  }
-
+  const parts: AiPart[] = hasImage
+    ? [{ inline_data: { mime_type: mimeType || "image/jpeg", data: imageBase64 } }, { text: "Extract the referral fields from this document photo." }]
+    : [{ text: description }];
+  // Shared helper: retries once, reads slightly broken JSON, logs the reason on failure.
+  const parsed = await geminiJSON<any>(SYSTEM_PROMPT, parts, { maxTokens: 4096, timeoutMs: 60_000, temperature: 0.15, label: hasImage ? "referral-scan" : "referral-autofill" });
+  if (!parsed) return NextResponse.json({ error: "Neyu couldn't read that right now" }, { status: 502 });
   try {
-    const parts: any[] = [];
-
-    if (hasImage) {
-      parts.push({
-        inline_data: {
-          mime_type: mimeType || "image/jpeg",
-          data: imageBase64,
-        },
-      });
-      parts.push({ text: "Extract the referral fields from this document photo." });
-    } else {
-      parts.push({ text: description });
-    }
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ role: "user", parts }],
-          generationConfig: { temperature: 0.15, maxOutputTokens: 400, responseMimeType: "application/json" },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Gemini API error:", errText);
-      return NextResponse.json({ error: "Upstream AI error" }, { status: 502 });
-    }
-
-    const data = await response.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    const parsed = JSON.parse(raw);
-
     return NextResponse.json({
       patientName: typeof parsed.patientName === "string" ? parsed.patientName : "",
       patientPhone: typeof parsed.patientPhone === "string" ? parsed.patientPhone : "",

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { brand } from "@/data/content";
+import { geminiJSON } from "@backend/ai";
 
 const SYSTEM_PROMPT = `You write short, friendly "what to expect at your appointment" guides for patients of ${brand.name}, a clinic in Calgary, Alberta.
 
@@ -19,68 +20,48 @@ STRICT RULES:
 5. Keep tone warm and reassuring, never clinical or alarming.
 6. If no specific exams were selected, keep "whatToExpect" and "prepTips" general to a first specialist consultation.`;
 
+// Built-in guide, used whenever the AI is unavailable or slow — so patients and
+// clinics always get a useful answer instead of an error.
+function builtIn(specialties: string[], exams: string[], urgency: string) {
+  const ex = exams.join(" ").toLowerCase();
+  const bring = ["Alberta Health Card", "Photo ID", "A list of your current medications (or the bottles)", "Your referral letter, if you have a copy"];
+  const tips: string[] = ["Arrive 10–15 minutes early to check in.", "Write down your symptoms, when they started and any questions you have."];
+  let duration = "30–60 minutes";
+  if (/stress|treadmill|exercise/.test(ex)) { bring.push("Comfortable clothes and walking or running shoes"); tips.push("Avoid caffeine and heavy meals for a few hours before a stress test, unless your clinic tells you otherwise."); tips.push("Ask your referring doctor whether to take your usual heart medicines that morning."); duration = "60–90 minutes"; }
+  if (/echo|ultrasound|carotid|doppler/.test(ex)) tips.push("Wear a two-piece outfit so the sonographer can easily reach your chest or neck.");
+  if (/holter|monitor|ambulatory/.test(ex)) { tips.push("Shower before your appointment — you usually can't shower while wearing a monitor."); tips.push("Wear a loose top that fits over the monitor."); }
+  if (/blood|lab|bnp|lipid|glucose/.test(ex)) tips.push("Some blood tests need fasting — check the instructions that come with your requisition.");
+  if (/spirometry|pulmonary|lung|breath/.test(ex)) tips.push("Avoid smoking and heavy exercise on the day of breathing tests, and ask whether to pause inhalers.");
+  const spec = specialties.length ? specialties.join(" and ") : "your specialist";
+  return {
+    whatToBring: Array.from(new Set(bring)).slice(0, 6),
+    whatToExpect: `You'll check in at reception, then a member of our team may take your vitals. ${exams.length ? `Your tests (${exams.slice(0, 3).join(", ")}) are done by our trained staff and the results go to your physician.` : `You'll meet ${spec === "your specialist" ? "the specialist" : `the ${spec} specialist`}, who will review your history and talk through next steps.`} ${/urgent|emergent/i.test(urgency) ? "Because this referral is marked urgent, the clinic will try to see you sooner." : "The clinic will call you to book a time."}`,
+    prepTips: Array.from(new Set(tips)).slice(0, 6),
+    estimatedDuration: duration,
+    source: "built-in",
+  };
+}
+
 export async function POST(req: NextRequest) {
   let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }); }
+  const list = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 20) : []) as string[];
+  const specialties = list(body?.specialties), exams = list(body?.exams);
+  const urgency = String(body?.urgency || "").slice(0, 60), clinicalNotes = String(body?.clinicalNotes || "").slice(0, 2000);
+  const fallback = builtIn(specialties, exams, urgency);
 
-  const { specialties = [], exams = [], urgency = "", clinicalNotes = "" } = body || {};
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
-  }
-
-  try {
-    const inputText = `Specialties requested: ${Array.isArray(specialties) && specialties.length ? specialties.join(", ") : "General consultation"}
-Diagnostic exams selected: ${Array.isArray(exams) && exams.length ? exams.join(", ") : "None specified"}
+  const inputText = `Specialties requested: ${specialties.length ? specialties.join(", ") : "General consultation"}
+Diagnostic exams selected: ${exams.length ? exams.join(", ") : "None specified"}
 Urgency: ${urgency || "Not specified"}
 Clinical notes (for context only, do not interpret): ${clinicalNotes || "None provided"}`;
+  const parsed = await geminiJSON<any>(SYSTEM_PROMPT, [{ text: inputText }], { maxTokens: 2048, timeoutMs: 20_000, temperature: 0.35, label: "visit-prep" });
+  if (!parsed) return NextResponse.json(fallback);
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ role: "user", parts: [{ text: inputText }] }],
-          generationConfig: { temperature: 0.35, maxOutputTokens: 500, responseMimeType: "application/json" },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Gemini API error:", errText);
-      return NextResponse.json({ error: "Upstream AI error" }, { status: 502 });
-    }
-
-    const data = await response.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = {};
-    }
-
-    return NextResponse.json({
-      whatToBring: Array.isArray(parsed.whatToBring) && parsed.whatToBring.length
-        ? parsed.whatToBring.slice(0, 6)
-        : ["Alberta Health Card", "Photo ID", "List of current medications"],
-      whatToExpect: typeof parsed.whatToExpect === "string" && parsed.whatToExpect.trim()
-        ? parsed.whatToExpect.trim()
-        : "You'll check in at reception, a member of our team will take your vitals, and then you'll meet with the physician to discuss your care.",
-      prepTips: Array.isArray(parsed.prepTips) ? parsed.prepTips.slice(0, 6) : [],
-      estimatedDuration: typeof parsed.estimatedDuration === "string" ? parsed.estimatedDuration.trim() : "",
-    });
-  } catch (err) {
-    console.error("Visit prep handler error:", err);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
-  }
+  const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).map((x: string) => x.trim()).slice(0, 6) : []);
+  return NextResponse.json({
+    whatToBring: strs(parsed.whatToBring).length ? strs(parsed.whatToBring) : fallback.whatToBring,
+    whatToExpect: typeof parsed.whatToExpect === "string" && parsed.whatToExpect.trim() ? parsed.whatToExpect.trim() : fallback.whatToExpect,
+    prepTips: strs(parsed.prepTips).length ? strs(parsed.prepTips) : fallback.prepTips,
+    estimatedDuration: typeof parsed.estimatedDuration === "string" ? parsed.estimatedDuration.trim() : fallback.estimatedDuration,
+  });
 }
