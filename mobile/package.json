@@ -1,0 +1,21 @@
+{
+  "name": "neyu-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NEYU Health mobile app \u2014 native shell (Capacitor) around neyuhealth.com",
+  "scripts": {
+    "sync": "npx cap sync",
+    "android": "npx cap open android",
+    "ios": "npx cap open ios",
+    "icons": "npx @capacitor/assets generate --iconBackgroundColor \"#FFFFFF\" --splashBackgroundColor \"#F7F6F2\""
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

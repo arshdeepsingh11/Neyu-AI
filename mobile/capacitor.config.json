@@ -1,0 +1,15 @@
+{
+  "appId": "com.neyuhealth.app",
+  "appName": "NEYU",
+  "webDir": "www",
+  "backgroundColor": "#F7F6F2",
+  "appendUserAgent": "NeyuApp",
+  "server": {
+    "url": "https://neyuhealth.com/app-start",
+    "cleartext": false,
+    "allowNavigation": ["neyuhealth.com", "*.neyuhealth.com"],
+    "errorPath": "offline.html"
+  },
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "never", "limitsNavigationsToAppBoundDomains": false }
+}

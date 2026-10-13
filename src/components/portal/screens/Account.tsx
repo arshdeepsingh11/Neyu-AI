@@ -3,7 +3,8 @@
 // More (mobile hub), Health Profile (photo, details, goals, password,
 // sign out), Privacy & Data, and Notifications.
 
-import React, { useRef, useState } from "react";
+import { isNativeApp, getAppHome, setAppHome, type AppHome } from "@/lib/appMode";
+import React, { useEffect, useRef, useState } from "react";
 import type { AppointmentsDTO, DeviceDTO, ProfileDTO, SettingsDTO } from "@/lib/portal/types";
 import { usePortal } from "../context";
 import { EP, api, prime, invalidate, useResource, announceSession } from "../api";
@@ -225,6 +226,7 @@ export function Profile() {
         </form>
       </section>
 
+      <AppHomeSetting />
       <button onClick={signOut} disabled={busy === "out"} className="h-danger" style={{ width: "100%", height: 48, border: "1px solid rgba(139,75,55,.25)", borderRadius: 12, background: "none", color: C.peachInk, fontSize: 15, cursor: "pointer", marginBottom: 16 }}>Sign out</button>
       <p style={{ margin: 0, fontSize: 13, color: C.muted }}>My Health Space shows information from your connected sources and NEYU. It doesn't replace advice from your care team.</p>
     </div>
@@ -322,5 +324,24 @@ export function Notifications() {
         { label: "Appointment reminders", sub: "The day before and morning of", on: settings.notifAppt, toggle: toggle("notifAppt") },
       ]} />
     </div>
+  );
+}
+
+/** Mobile app only: choose where the app opens. */
+function AppHomeSetting() {
+  const [native, setNative] = useState(false), [home, setHome] = useState<AppHome>("myhealth");
+  useEffect(() => { setNative(isNativeApp()); setHome(getAppHome() || "myhealth"); }, []);
+  if (!native) return null;
+  const pick = (v: AppHome) => { setHome(v); setAppHome(v); };
+  return (
+    <section style={{ marginBottom: 20, padding: 18, borderRadius: 18, background: C.card, border: `1px solid ${C.line}` }}>
+      <h2 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500 }}>App opens to</h2>
+      <p style={{ margin: "0 0 12px", fontSize: 13.5, color: C.muted }}>Choose the first screen when you open the NEYU app.</p>
+      <div role="radiogroup" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {([["myhealth", "My Health Space"], ["website", "NEYU website"]] as [AppHome, string][]).map(([k, l]) => (
+          <button key={k} role="radio" aria-checked={home === k} onClick={() => pick(k)} style={{ height: 40, padding: "0 16px", borderRadius: 20, border: `1px solid ${home === k ? "transparent" : C.line12}`, background: home === k ? C.tealChip : "transparent", color: home === k ? C.tealDark : C.ink2, fontSize: 14, cursor: "pointer" }}>{l}</button>
+        ))}
+      </div>
+    </section>
   );
 }
