@@ -19,12 +19,8 @@
 @keyframes albaRipple { 0% { transform: scale(1); opacity: .7 } 100% { transform: scale(2.1); opacity: 0 } }
 @keyframes sparkle { 0%,100% { transform: scale(0) rotate(0deg); opacity: 0 } 50% { transform: scale(1) rotate(90deg); opacity: 1 } }
 
-@media (prefers-reduced-motion: reduce) {
-  .anra-root *, .anra-root *::before, .anra-root *::after,
-  .anra-chrome *, .anra-chrome *::before, .anra-chrome *::after {
-    animation: none !important; transition: none !important; scroll-behavior: auto !important;
-  }
-}
+/* "Reduce Motion" (phone accessibility setting): the site keeps its motion —
+   carousels, live charts and transitions — but the JS effects run calmer. */
 
 /* Base type + resets for design-system surfaces (undo Tailwind preflight
    where the design relies on browser defaults). */
@@ -125,11 +121,19 @@
 .nea-card { transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s; }
 @media (hover: hover) { .nea-card:hover { transform: translateY(-3px); box-shadow: 0 28px 50px -30px rgba(20,24,27,.45) !important; } }
 
-/* Phones: floating Back / Sign-in pills hide while scrolling down (NavChrome sets data-chrome). */
+/* Phones: a solid top bar (Back · NEYU · Sign in). The page starts below it;
+   it slides away while scrolling down and returns on scroll up. */
+:root { --neyu-topbar: 56px; }
+html.neyu-topbar body { padding-top: calc(var(--neyu-topbar) + env(safe-area-inset-top)); }
 @media (max-width: 859px) {
+  .neyu-topbar-el { transition: transform .28s ease; }
+  html[data-chrome="hidden"] .neyu-topbar-el { transform: translateY(-100%); }
   .anra-float { transition: transform .28s ease, opacity .28s ease; }
   html[data-chrome="hidden"] .anra-float { transform: translateY(-80px); opacity: 0; pointer-events: none; }
-  html[data-chrome="hidden"] .nea-bar { top: 10px !important; }
+  html.neyu-topbar .nea-bar { top: calc(var(--neyu-topbar) + env(safe-area-inset-top)) !important; }
+  html[data-chrome="hidden"] .nea-bar { top: env(safe-area-inset-top) !important; }
+  /* Sticky section tabs sit on a solid band, so page content never peeks around them. */
+  .sx-bar, .nea-bar { padding-top: 8px !important; padding-bottom: 10px !important; background: linear-gradient(180deg, #F7F6F2 0%, #F7F6F2 78%, rgba(247,246,242,0) 100%); }
   .nea-bar { transition: top .28s ease; }
 }
 
@@ -143,7 +147,6 @@
 @keyframes neyuFloat { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
 .neyu-main { --neyu-pr: clamp(16px,4vw,40px); }
 @media (min-width: 860px) { .neyu-main { --neyu-pr: max(40px, calc(100px - max(0px, (100vw - 1200px) / 2))); } }
-@media (prefers-reduced-motion: reduce) { .neyu-page * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
 @media (max-width: 420px) { .neyu-hide-xs { display: none; } }
 /* NEYU v2 — quiet interactions */
 .neyu-prompt { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease, background .25s ease; }
@@ -152,3 +155,11 @@
 @media (hover: hover) { .neyu-chip:hover { border-color: rgba(31,167,180,.5) !important; } }
 .neyu-prompt:focus-visible, .neyu-chip:focus-visible, .sx-card:focus-visible { outline: 2px solid #1FA7B4; outline-offset: 3px; }
 .neyu-noscroll::-webkit-scrollbar { display: none; }
+
+/* Chat boxes: the hint text stays on one line, never cut in half. */
+.neyu-msgbox::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+
+/* Long hints in one-line boxes end with "…" instead of being cut mid-letter. */
+input { text-overflow: ellipsis; }
+input::placeholder { text-overflow: ellipsis; }

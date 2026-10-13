@@ -13,7 +13,7 @@ const KEY = "anra_trail";
 const read = (): string[] => { try { return JSON.parse(sessionStorage.getItem(KEY) || "[]"); } catch { return []; } };
 const write = (t: string[]) => { try { sessionStorage.setItem(KEY, JSON.stringify(t.slice(-30))); } catch {} };
 
-export default function BackButton({ mobile }: { mobile: boolean }) {
+export default function BackButton({ mobile, inline }: { mobile: boolean; inline?: boolean }) {
   const pathname = usePathname() || "/";
   const router = useRouter();
   const [hasTrail, setHasTrail] = useState(false);
@@ -40,10 +40,9 @@ export default function BackButton({ mobile }: { mobile: boolean }) {
     <button
       onClick={goBack}
       aria-label={hasTrail ? "Go back to the previous page" : "Go to the homepage"}
-      className="anra-chrome hv-sand anra-float"
+      className={inline ? "hv-sand" : "anra-chrome hv-sand anra-float"}
       style={{
-        position: "fixed", zIndex: 60,
-        top: mobile ? "calc(10px + env(safe-area-inset-top))" : 18, left: mobile ? 10 : 18,
+        ...(inline ? { position: "relative" } : { position: "fixed", zIndex: 60, top: mobile ? "calc(10px + env(safe-area-inset-top))" : 18, left: mobile ? 10 : 18 }),
         height: mobile ? 40 : 44, display: "flex", alignItems: "center", gap: 7,
         padding: mobile ? "0 14px 0 10px" : "0 16px 0 12px", borderRadius: 999,
         background: "rgba(253,252,250,.86)", backdropFilter: "blur(16px) saturate(1.3)", WebkitBackdropFilter: "blur(16px) saturate(1.3)",

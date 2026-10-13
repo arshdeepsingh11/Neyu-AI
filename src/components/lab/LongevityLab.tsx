@@ -93,7 +93,7 @@ export default function LongevityLab() {
 
   return (
     <div style={{ color: T.ink, paddingBottom: 90 }}>
-      <style>{`.sx-tabs::-webkit-scrollbar{display:none}.sx-bar{top:10px;transition:top .28s ease}@media (max-width:859px){.sx-bar{top:62px}html[data-chrome="hidden"] .sx-bar{top:10px}}`}</style>
+      <style>{`.sx-tabs::-webkit-scrollbar{display:none}.sx-bar{top:10px;transition:top .28s ease}@media (max-width:859px){.sx-bar{top:calc(var(--neyu-topbar,56px) + env(safe-area-inset-top))}html[data-chrome="hidden"] .sx-bar{top:env(safe-area-inset-top)}}`}</style>
       <div style={{ position: "relative", overflow: "hidden", padding: "clamp(28px,5vw,64px) 0 clamp(20px,3vw,36px)", background: "radial-gradient(900px 480px at 90% 0%, rgba(34,115,214,.09), transparent 60%), radial-gradient(800px 500px at 0% 30%, rgba(47,191,148,.09), transparent 60%)" }}>
         <FlowLines opacity={0.45} />
         <div style={{ ...wrap, position: "relative" }}><Hero onAsk={ask} onGo={(t) => setTab(t)} /></div>

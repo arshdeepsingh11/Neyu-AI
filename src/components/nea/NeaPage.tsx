@@ -40,7 +40,7 @@ export default function NeaPage() {
     history.replaceState(null, "", u.pathname + u.search + u.hash);
     // Scroll back to where the tab bar sits un-stuck (sentinel marks it).
     if (scroll && barRef.current) {
-      const stick = window.innerWidth <= 859 ? 62 : 10;
+      const stick = window.innerWidth <= 859 ? 64 : 10;
       const top = barRef.current.getBoundingClientRect().top + window.scrollY - stick;
       if (window.scrollY > top + 1) window.scrollTo({ top, behavior: "smooth" });
     }
@@ -67,7 +67,7 @@ export default function NeaPage() {
 
   return (
     <div style={{ color: T.ink, paddingBottom: 90 }}>
-      <style>{`.nea-tabs::-webkit-scrollbar{display:none}.nea-marquee{animation:neaMarquee 60s linear infinite}.nea-marquee:hover{animation-play-state:paused}@keyframes neaMarquee{to{transform:translateX(-50%)}}.nea-glassbtn:hover{background:rgba(255,255,255,.13)!important}.nea-row:hover{background:${T.paper}}@media (prefers-reduced-motion: reduce){.nea-marquee{animation:none}}.nea-bar{top:10px}@media (max-width:859px){.nea-bar{top:62px}}.nea-gantt{display:grid;grid-template-columns:minmax(120px,26%) 1fr;gap:12px;align-items:center}@media (max-width:560px){.nea-gantt{grid-template-columns:1fr;gap:6px}.nea-gantt-sp{display:none}}`}</style>
+      <style>{`.nea-tabs::-webkit-scrollbar{display:none}.nea-marquee{animation:neaMarquee 60s linear infinite}.nea-marquee:hover{animation-play-state:paused}@keyframes neaMarquee{to{transform:translateX(-50%)}}.nea-glassbtn:hover{background:rgba(255,255,255,.13)!important}.nea-row:hover{background:${T.paper}}@media (prefers-reduced-motion: reduce){.nea-marquee{animation:none}}.nea-bar{top:10px}@media (max-width:859px){.nea-bar{top:calc(var(--neyu-topbar,56px) + env(safe-area-inset-top))}}.nea-gantt{display:grid;grid-template-columns:minmax(120px,26%) 1fr;gap:12px;align-items:center}@media (max-width:560px){.nea-gantt{grid-template-columns:1fr;gap:6px}.nea-gantt-sp{display:none}}`}</style>
 
       {/* Title (like the specialty pages) */}
       <header style={{ ...wrap, paddingTop: "clamp(34px,6vw,72px)", textAlign: "center" }}>
