@@ -25,7 +25,7 @@ function bars(seed: string) {
   });
 }
 
-export default function PhysicianIdCard({ p, index = 0, onOpen }: { p: Physician; index?: number; onOpen: () => void }) {
+export default function PhysicianIdCard({ p, index = 0, onOpen, strap = STRAP }: { p: Physician; index?: number; onOpen: () => void; strap?: number }) {
   const rigRef = useRef<HTMLDivElement>(null);
   const s = useRef({ a: 0, v: 0, dragging: false, moved: false, startX: 0, pivotX: 0, pivotY: 0, raf: 0, last: 0 });
 
@@ -88,7 +88,7 @@ export default function PhysicianIdCard({ p, index = 0, onOpen }: { p: Physician
       <div ref={rigRef} style={{ transformOrigin: "50% 0", display: "flex", flexDirection: "column", alignItems: "center", willChange: "transform" }}>
         {/* Pivot pin + lanyard */}
         <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: "50%", background: "#14181B", boxShadow: "0 2px 4px rgba(0,0,0,.3)", marginBottom: -4, zIndex: 1 }} />
-        <span aria-hidden="true" style={{ width: 22, height: STRAP, borderRadius: 3, background: "repeating-linear-gradient(0deg,#1C2226 0 3px,#2A3035 3px 4px), #1C2226", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.04)" }} />
+        <span aria-hidden="true" style={{ width: 22, height: strap, borderRadius: 3, background: "repeating-linear-gradient(0deg,#1C2226 0 3px,#2A3035 3px 4px), #1C2226", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.04)" }} />
         <span aria-hidden="true" style={{ width: 16, height: 12, borderRadius: 3, background: "linear-gradient(#5A626A,#2A3035)", marginTop: -2 }} />
 
         {/* Card */}

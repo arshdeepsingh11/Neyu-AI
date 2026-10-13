@@ -9,6 +9,7 @@ import { locations } from "@/data/content";
 import { N, Section, PillarHero, NeyuReads, CtaBand, cardN, btn, gradText } from "../kit";
 import { NIcon } from "../icons";
 import { SphereGallery, PillNav } from "../fx";
+import PhysicianIdGrid from "@/components/PhysicianIdGrid";
 import { PhysicianCard, PhysicianSheet, LanguageMatrix, Avatar, ALL_LANGS } from "../people";
 
 const CONCERNS = [
@@ -90,9 +91,7 @@ export default function PhysiciansPage() {
           <PillNav size="sm" label="Filter by discipline" tabs={DISCIPLINES.map((d) => ({ k: d, label: d === "All" ? "All disciplines" : d }))} value={disc} onChange={setDisc} />
           <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }} className="neyu-noscroll">{["All", ...ALL_LANGS].map((l) => <button key={l} aria-pressed={fLang === l} onClick={() => setFLang(l)} style={{ flex: "none", minHeight: 36, padding: "0 14px", borderRadius: 999, border: `1px solid ${fLang === l ? N.blue : N.line}`, background: fLang === l ? "rgba(34,115,214,.08)" : "#fff", color: fLang === l ? N.deep : N.ink2, fontSize: 13.5, cursor: "pointer" }}>{l === "All" ? "Any language" : l}</button>)}</div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
-          {team.map((p) => <PhysicianCard key={p.slug} p={p} onOpen={() => setOpen(p)} />)}
-        </div>
+        <PhysicianIdGrid list={team} onOpen={setOpen} />
         {!team.length && <p style={{ color: N.muted }}>No physician matches both filters.</p>}
         <div style={{ display: "grid", gap: 8 }}>
           <b style={{ fontWeight: 500, fontSize: 20 }}>Who speaks what</b>

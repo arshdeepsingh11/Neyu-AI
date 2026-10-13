@@ -17,8 +17,9 @@ import { T, wrap, card, btnInk, btnGhost, chip, eyebrow, h2, aiText, Icon, Count
 import AskPanel from "./AskPanel";
 import { N, btn as nbtn, cardN, gradText, AiBadge, Kicker, PromptCard, FlowLines, wrapN } from "@/components/neyu/kit";
 import { NChart } from "@/components/neyu/charts";
-import { Marquee3D, Coverflow, PillNav, SignalConvergence } from "@/components/neyu/fx";
-import { PhysicianCard, PhysicianSheet as NPhysicianSheet, LanguageMatrix } from "@/components/neyu/people";
+import { Marquee3D, PillNav, SignalConvergence } from "@/components/neyu/fx";
+import PhysicianIdGrid from "@/components/PhysicianIdGrid";
+import { PhysicianSheet as NPhysicianSheet, LanguageMatrix } from "@/components/neyu/people";
 import { useToolList, ToolFrame } from "./tools";
 import { NIcon } from "@/components/neyu/icons";
 
@@ -171,7 +172,7 @@ export default function SpecialtyExperience({ slug }: { slug: string }) {
     if (t === "overview") u.searchParams.delete("tab"); else u.searchParams.set("tab", t);
     history.replaceState(null, "", u.pathname + u.search);
     const bar = barRef.current;
-    if (bar) { const stick = window.innerWidth <= 859 ? 62 : 10; const top = bar.getBoundingClientRect().top + window.scrollY - stick; if (window.scrollY > top + 1) window.scrollTo({ top, behavior: "smooth" }); }
+    if (bar) { const stick = window.innerWidth <= 859 ? 64 : 10; const top = bar.getBoundingClientRect().top + window.scrollY - stick; if (window.scrollY > top + 1) window.scrollTo({ top, behavior: "smooth" }); }
   }, []);
   useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab") as Tab | null; if (t && TABS.some((x) => x.v === t)) setTabState(t); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   const ask = useCallback((q: string) => { setSeed(q); setTab("alba"); }, [setTab]);
@@ -193,7 +194,7 @@ export default function SpecialtyExperience({ slug }: { slug: string }) {
       <div className="sx-bar" style={{ position: "sticky", zIndex: 40, display: "flex", justifyContent: "center", padding: "0 12px" }}>
         <PillNav label={`${c.label} sections`} tabs={TABS.map((t) => ({ k: t.v, label: t.label, icon: TAB_ICON[t.v] }))} value={tab} onChange={(k) => setTab(k)} />
       </div>
-      <style>{`.sx-bar{top:10px;transition:top .28s ease}@media (max-width:859px){.sx-bar{top:62px}html[data-chrome="hidden"] .sx-bar{top:10px}}`}</style>
+      <style>{`.sx-bar{top:10px;transition:top .28s ease}@media (max-width:859px){.sx-bar{top:calc(var(--neyu-topbar,56px) + env(safe-area-inset-top))}html[data-chrome="hidden"] .sx-bar{top:env(safe-area-inset-top)}}`}</style>
 
       <main key={tab} style={{ ...wrapN, marginTop: "clamp(22px,3vw,34px)", animation: "fadeUp .35s ease", display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: "clamp(18px,2.6vw,28px)" }}>
         {tab === "overview" && <>
@@ -299,9 +300,7 @@ export default function SpecialtyExperience({ slug }: { slug: string }) {
           {[[shownDocs, c.partner ? "" : `${c.label} physicians`], [shownTeam, docs.length ? "Also on our NEYU team" : "Our NEYU physicians"]].map(([list, title]) => (list as Physician[]).length > 0 && (
             <section key={title as string} style={{ display: "grid", gap: 4 }}>
               {title && <div style={{ ...eyebrow, color: N.teal }}>{title as string} · {(list as Physician[]).length}</div>}
-              {(list as Physician[]).length > 2
-                ? <Coverflow label={title as string || "Physicians"} items={list as Physician[]} cardWidth={320} render={(p, i, on) => <PhysicianCard p={p} active={on} onOpen={() => setDoc(p)} />} />
-                : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,300px),1fr))", gap: 16, marginTop: 8 }}>{(list as Physician[]).map((p) => <PhysicianCard key={p.slug} p={p} onOpen={() => setDoc(p)} />)}</div>}
+              <PhysicianIdGrid list={list as Physician[]} onOpen={setDoc} />
             </section>
           ))}
           {!shownDocs.length && !shownTeam.length && <p style={{ color: T.muted }}>No physician matches both filters — try “Any”.</p>}
