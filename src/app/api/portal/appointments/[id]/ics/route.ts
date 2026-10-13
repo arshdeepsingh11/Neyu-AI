@@ -12,7 +12,7 @@ export const GET = (_req: Request, ctx: { params: Promise<{ id: string }> }) => 
   const end = new Date(a.startsAt.getTime() + a.durationMin * 60000);
   const ics = [
     "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//NEYU Health//My Health Space//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
-    "BEGIN:VEVENT", `UID:${a.id}@anrahealth.com`, `DTSTAMP:${stamp(new Date())}`, `DTSTART:${stamp(a.startsAt)}`, `DTEND:${stamp(end)}`,
+    "BEGIN:VEVENT", `UID:${a.id}@neyuhealth.com`, `DTSTAMP:${stamp(new Date())}`, `DTSTART:${stamp(a.startsAt)}`, `DTEND:${stamp(end)}`,
     `SUMMARY:${esc(`${a.title} — ${a.clinician}`)}`, `LOCATION:${esc(a.location)}`, "DESCRIPTION:NEYU Health appointment. Call 403-475-4475 to make changes.",
     "BEGIN:VALARM", "TRIGGER:-PT24H", "ACTION:DISPLAY", "DESCRIPTION:NEYU Health appointment tomorrow", "END:VALARM",
     "END:VEVENT", "END:VCALENDAR",

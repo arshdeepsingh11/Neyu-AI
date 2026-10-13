@@ -1,0 +1,36 @@
+# NEYU Health
+
+> NEYU Health is a cardiology and internal medicine clinic in Calgary, Alberta, Canada, with AI-guided care. It brings heart testing, specialist care, prevention, longevity and a private patient health space together in one place. Neyu is the clinic's AI health companion; it explains health information and never diagnoses.
+
+## Clinics
+- North East: 201 – 3151 27 St NE, Calgary, AB T1Y 0B4 · 403-475-4475
+- Meadow Miles: 250 – 8500 Blackfoot Trail SE, Calgary, AB T2J 7E1 · 403-879-7911
+- Referral-based specialty clinic (Alberta). In an emergency, call 911.
+
+## Care
+- [Care overview](https://neyuhealth.com/care): virtual care, hypertension clinic, at-home blood collection (Calgary), packages and membership
+- [Virtual Hypertension Clinic](https://neyuhealth.com/hypertension-clinic)
+- [At-home blood collection](https://neyuhealth.com/at-home)
+- [Virtual care](https://neyuhealth.com/virtual-care)
+- [Health packages](https://neyuhealth.com/packages) and [Membership](https://neyuhealth.com/membership)
+
+## Specialties
+- [All specialties](https://neyuhealth.com/specialties): Cardiology, Heart Failure Clinic, Internal Medicine, Endocrinology, Geriatric Medicine, Pediatric Rheumatology; partner clinics for Respiratory Medicine, Nutrition and Precision Skin Health
+- [Find a physician](https://neyuhealth.com/physicians)
+
+## Diagnostics
+- [Diagnostics overview](https://neyuhealth.com/diagnostics): cardiac imaging (echocardiography), exercise stress testing incl. stress echo, heart rhythm monitoring (Holter), pulmonary function, vascular studies
+- [Lab results explained](https://neyuhealth.com/lab-results) · [Genomics (BioAro Labs tests)](https://neyuhealth.com/genomics)
+
+## Prevention & longevity
+- [Prevention](https://neyuhealth.com/prevention) · [Longevity](https://neyuhealth.com/longevity) · [Longevity Lab assessment](https://neyuhealth.com/longevity-lab)
+- [Heart symptoms guide](https://neyuhealth.com/cardiac-symptoms)
+
+## My Health Space
+- [My Health Space](https://neyuhealth.com/my-health/sign-up): a private, provider-neutral personal health record. Patients add reports from any doctor, lab or hospital (upload, scan or photo), connect Apple Health, Oura, WHOOP and Withings, log food, get an AI health plan and create a Doctor Assessment PDF to bring to any doctor. AI content is always labelled; original reports are kept unchanged.
+
+## For referring physicians
+- [Referral Centre](https://neyuhealth.com/referral-centre)
+
+## About
+- [About NEYU Health](https://neyuhealth.com/about) · [Contact](https://neyuhealth.com/contact) · [Careers](https://neyuhealth.com/careers) · [Resources](https://neyuhealth.com/resources)

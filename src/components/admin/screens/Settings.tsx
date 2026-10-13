@@ -56,7 +56,7 @@ export default function Settings({ tab, setTab }: { tab: string; setTab: (t: str
               </div>
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <i className="ph ph-envelope-simple" style={{ fontSize: 20, color: T.teal }} />
-                <div style={{ flex: 1 }}><div style={{ fontWeight: 500 }}>Sender · {data.mailFrom}</div><div style={{ fontSize: 13.5, color: T.faint }}>Used for verification codes and sync reminders{/resend\.dev$/.test(data.mailFrom) ? ". This is Resend's test sender — verify anrahealth.com in Resend and update MAIL_FROM before launch." : ""}</div></div>
+                <div style={{ flex: 1 }}><div style={{ fontWeight: 500 }}>Sender · {data.mailFrom}</div><div style={{ fontSize: 13.5, color: T.faint }}>Used for verification codes and sync reminders{/resend\.dev$/.test(data.mailFrom) ? ". This is Resend's test sender — verify neyuhealth.com in Resend and update MAIL_FROM before launch." : ""}</div></div>
                 <Chip c={/resend\.dev$/.test(data.mailFrom) ? chip("Test sender", "neutral", "ph-flask") : chip("Custom domain", "teal", "ph-seal-check")} />
               </div>
             </div>

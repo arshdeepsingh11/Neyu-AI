@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { HeartPulse, Activity, Stethoscope, Droplet, Users, Baby, Wind, Apple, Sparkles } from "lucide-react";
 
 export interface Clinic {
-  id: string;              // URL slug: anrahealth.com/{id}
+  id: string;              // URL slug: neyuhealth.com/{id}
   label: string;
   icon: LucideIcon;
   partner?: string;        // set only for externally-partnered clinics

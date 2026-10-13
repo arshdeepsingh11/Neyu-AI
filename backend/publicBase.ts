@@ -1,5 +1,5 @@
 // The address a phone can reach this server on. PUBLIC_BASE_URL wins (set it
-// to https://anrahealth.com in production). When the site is opened as
+// to https://neyuhealth.com in production). When the site is opened as
 // localhost on the computer, the computer's Wi-Fi/Ethernet address is used so
 // the phone (same Wi-Fi) can reach it — virtual adapters are skipped.
 import { networkInterfaces } from "os";
