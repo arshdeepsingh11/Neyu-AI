@@ -10,6 +10,8 @@ import { usePortal } from "../context";
 import { EP, api, invalidate, load, useResource, ApiError } from "../api";
 import { C, screenAnim, Loading, EmptyCard, btnPrimary, btnSecondary, btnOutline, btnLink, cardBox } from "../ui";
 import { NIcon } from "@/components/neyu/icons";
+import FileReady from "@/components/FileReady";
+import { saveFile, isIOS, isNeyuApp } from "@/lib/saveFile";
 import { BaselineCard } from "./Baseline";
 import { Ticker, Ring, AnimatedList, Shine, Morph, StatusChip, SourceTag, AiTag, OriginalTag, SecHead, ProcessSteps, kindLabel, kindIcon, STATUS } from "../space-ui";
 import type { MetricKey } from "@/lib/portal/metrics";
@@ -807,6 +809,7 @@ export function Assessment() {
   const [docIds, setDocIds] = useState<string[]>([]);
   const [obs, setObs] = useState<string[]>([]), [qs, setQs] = useState<string[]>([]), [newQ, setNewQ] = useState(""), [summary, setSummary] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [readyFile, setReadyFile] = useState<{ blob: Blob; name: string } | null>(null);
   const [dl, setDl] = useState<null | { print: boolean; info: PageInfo | null }>(null);
   const docs = useResource<{ documents: Doc[] }>(EP.docs).data?.documents.filter((x) => x.status === "saved") || [];
 
@@ -837,11 +840,15 @@ export function Assessment() {
       const res = await fetch("/api/portal/assessment/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: body({ docIds: withReports ? docIds : [] }) });
       if (!res.ok) throw new ApiError((await res.json().catch(() => ({})))?.error || "We couldn't create the PDF.", res.status);
       const blob = await res.blob(), url = URL.createObjectURL(blob);
-      if (print) {
+      const fname = `Doctor-Assessment-${new Date().toISOString().slice(0, 10)}.pdf`;
+      if (isIOS() || isNeyuApp()) {
+        // iPhone / app: a hidden download or print frame is ignored — use the share sheet (Print is in it).
+        URL.revokeObjectURL(url); setReadyFile({ blob, name: fname });
+      } else if (print) {
         const f = document.createElement("iframe"); f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0"; f.src = url; document.body.appendChild(f);
         f.onload = () => { try { f.contentWindow?.focus(); f.contentWindow?.print(); } catch { window.open(url, "_blank"); } setTimeout(() => f.remove(), 60_000); };
       } else {
-        const a = document.createElement("a"); a.href = url; a.download = `Doctor-Assessment-${new Date().toISOString().slice(0, 10)}.pdf`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 30_000);
+        URL.revokeObjectURL(url); await saveFile(blob, fname);
         toast("PDF saved to your device");
       }
       setDl(null);
@@ -995,6 +1002,7 @@ export function Assessment() {
           </div>
         </div>
       )}
+      <FileReady file={readyFile} onClose={() => setReadyFile(null)} />
     </div>
   );
 }

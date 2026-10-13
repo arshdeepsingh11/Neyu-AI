@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import FileReady from "@/components/FileReady";
+import { saveFile } from "@/lib/saveFile";
 import AlbaOrb from "@/components/AlbaOrb";
 import { N, NeyuPage, Section, Kicker, NeyuReads, IconTile, cardN, btn, gradText, FlowLines, wrapN } from "@/components/neyu/kit";
 import { NIcon } from "@/components/neyu/icons";
@@ -58,17 +60,25 @@ function toggle(arr: string[], val: string) {
   return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
 }
 
-function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(",")[1] || "";
-      resolve({ base64, mimeType: file.type || "image/jpeg" });
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+// Phone photos are shrunk to max 1600px JPEG before upload: faster on mobile
+// data, under the server size limit, and iPhone HEIC photos become JPEG.
+async function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  try {
+    const url = URL.createObjectURL(file);
+    const img = await new Promise<HTMLImageElement>((ok, bad) => { const i = new window.Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+    const data = c.toDataURL("image/jpeg", 0.85);
+    return { base64: data.split(",")[1] || "", mimeType: "image/jpeg" };
+  } catch {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ base64: (reader.result as string).split(",")[1] || "", mimeType: file.type || "image/jpeg" });
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 }
 
 // Loads /logo.png and returns a base64 PNG + its natural aspect ratio,
@@ -100,6 +110,9 @@ export default function ReferralCentre() {
   const [freeText, setFreeText] = useState("");
   const [autofilling, setAutofilling] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [readyFile, setReadyFile] = useState<{ blob: Blob; name: string } | null>(null);
+  // Load the PDF library early so the download starts instantly on tap.
+  useEffect(() => { import("jspdf").catch(() => {}); }, []);
   const [scannedFileName, setScannedFileName] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +172,7 @@ export default function ReferralCentre() {
   const handleScanFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 25 * 1024 * 1024) {
       setError("That photo is a bit large — try again with a smaller image or better lighting to reduce file size.");
       return;
     }
@@ -411,11 +424,17 @@ export default function ReferralCentre() {
       doc.setFontSize(9);
       doc.setTextColor(...GOLD_LIGHT);
       doc.text("Please fax completed form - we will call the patient to book", margin, pageHeight - footerH / 2 + 3);
-      doc.text("www.anrahealth.com", pageWidth - margin, pageHeight - footerH / 2 + 3, { align: "right" });
+      doc.text("www.neyuhealth.com", pageWidth - margin, pageHeight - footerH / 2 + 3, { align: "right" });
 
       logSubmission();
 
-      doc.save(`NEYU-Referral-${form.patientName || "patient"}.pdf`);
+      const name = `NEYU-Referral-${(form.patientName || "patient").replace(/[^\w\- ]+/g, "").trim() || "patient"}.pdf`;
+      const blob = doc.output("blob");
+      const r = await saveFile(blob, name, { fromTap: false });
+      if (r === "needs-tap") setReadyFile({ blob, name });
+    } catch (e) {
+      console.error("Referral PDF failed", e);
+      setError("Couldn't create the PDF. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -539,6 +558,7 @@ export default function ReferralCentre() {
           </aside>
         </div>
       </Section>
+      <FileReady file={readyFile} onClose={() => setReadyFile(null)} />
     </NeyuPage>
   );
 }
