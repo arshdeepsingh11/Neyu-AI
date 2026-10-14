@@ -15,26 +15,63 @@ const Scrim = ({ z = 60, dim = 0.22, children }: { z?: number; dim?: number; chi
 const input = { height: 46, borderRadius: 12, border: `1px solid ${T.line3}`, background: T.card, padding: "0 14px", fontSize: 15, color: T.ink, outline: "none", width: "100%" } as React.CSSProperties;
 
 // ── Sign-in ──────────────────────────────────────────────────────────────
+// Step 1: work email + password. Step 2: 6-digit code from the authenticator app
+// (first sign-in: scan the QR code first). Old shared password: step 1 only.
+type Setup = { qr: string; secret: string; otpauth: string };
+const post = async (url: string, body: unknown) => {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "Couldn't sign in.");
+  return j;
+};
 export function SignIn({ onSignedIn }: { onSignedIn: (actor: string) => void }) {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"password" | "code" | "setup">("password");
+  const [setup, setSetup] = useState<Setup | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(false);
+  const codeRef = useRef<HTMLInputElement>(null);
   useEffect(() => { try { setId(localStorage.getItem("anra_admin_id") || ""); } catch { /* private mode */ } }, []);
-  const submit = async (e: React.FormEvent) => {
+  useEffect(() => { if (step !== "password") setTimeout(() => codeRef.current?.focus(), 50); }, [step]);
+  const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id.trim()) return setErr("Enter your email or admin identifier.");
-    if (!pw) return setErr("Enter the admin password.");
+    if (!id.trim()) return setErr("Enter your work email.");
+    if (!pw) return setErr("Enter your password.");
     setBusy(true); setErr("");
     try {
-      const r = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier: id, password: pw }) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) { setErr(j.error || "Couldn't sign in."); setBusy(false); return; }
+      const j = await post("/api/admin/login", { identifier: id, password: pw });
       try { localStorage.setItem("anra_admin_id", id.trim()); } catch { /* ignore */ }
-      setPw(""); onSignedIn(j.actor);
-    } catch { setErr("Couldn't reach the server. Check your connection."); setBusy(false); }
+      setPw("");
+      if (j.step === "done") return onSignedIn(j.actor);
+      if (j.step === "setup") setSetup({ qr: j.qr, secret: j.secret, otpauth: j.otpauth });
+      setStep(j.step); setBusy(false);
+    } catch (x: any) { setErr(x.message === "Failed to fetch" ? "Couldn't reach the server. Check your connection." : x.message); setBusy(false); }
   };
+  const submitCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const c = code.replace(/\s/g, "");
+    if (!/^\d{6}$/.test(c)) return setErr("Enter the 6-digit code from your authenticator app.");
+    setBusy(true); setErr("");
+    try { const j = await post("/api/admin/mfa", { code: c }); setCode(""); onSignedIn(j.actor); }
+    catch (x: any) {
+      setErr(x.message); setBusy(false); setCode("");
+      if (/again\.$/.test(x.message) && /email and password/.test(x.message)) { setStep("password"); setSetup(null); }
+    }
+  };
+  const back = () => { setStep("password"); setSetup(null); setCode(""); setErr(""); };
+  const label = { fontSize: 13, fontWeight: 500, color: T.ink2 } as React.CSSProperties;
+  const errBox = err && <div role="alert" style={{ display: "flex", gap: 8, alignItems: "center", background: T.peach, color: T.peachInk, borderRadius: 12, padding: "10px 12px", fontSize: 14 }}><i className="ph ph-warning-circle" />{err}</div>;
+  const primary = (text: string, busyText: string) => <button type="submit" disabled={busy} className="h-primary" style={{ height: 46, borderRadius: 12, border: "none", background: T.teal, color: T.card, fontSize: 15, fontWeight: 500, cursor: "pointer", transition: "background 200ms", opacity: busy ? 0.8 : 1 }}>{busy ? busyText : text}</button>;
+  const card = { background: T.card, border: `1px solid ${T.line}`, borderRadius: 22, padding: 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: T.shadow } as React.CSSProperties;
+  const codeInput = (
+    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span style={label}>6-digit code</span>
+      <input ref={codeRef} inputMode="numeric" autoComplete="one-time-code" maxLength={7} value={code} onChange={(e) => { setCode(e.target.value.replace(/[^\d ]/g, "")); setErr(""); }} placeholder="123 456" aria-label="6-digit code" className="f-teal" style={{ ...input, fontSize: 22, letterSpacing: "0.3em", textAlign: "center", fontVariantNumeric: "tabular-nums" }} />
+    </label>
+  );
   return (
     <main data-screen-label="01 Sign-in" style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "minmax(0,1fr)", placeItems: "center", padding: "32px 20px", background: T.page }}>
       <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 28, animation: "anraPop 320ms cubic-bezier(.2,.8,.2,1)" }}>
@@ -42,20 +79,49 @@ export function SignIn({ onSignedIn }: { onSignedIn: (actor: string) => void }) 
           <div style={{ width: 44, height: 44, display: "grid", placeItems: "center" }}><NeyuMark size={42} title="NEYU Health" /></div>
           <div><h1 style={{ margin: 0, fontSize: 30, fontWeight: 500, letterSpacing: "-0.025em" }}>NEYU Health</h1><div style={{ fontSize: 16, color: T.ink2, marginTop: 2 }}>Admin Console</div></div>
         </div>
-        <form onSubmit={submit} style={{ background: T.card, border: `1px solid ${T.line}`, borderRadius: 22, padding: 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: T.shadow }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: T.ink2 }}>Email or admin identifier</span>
-            <input type="text" autoComplete="username" value={id} onChange={(e) => { setId(e.target.value); setErr(""); }} className="f-teal" style={input} />
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span style={{ fontSize: 13, fontWeight: 500, color: T.ink2 }}>Password</span><button type="button" onClick={() => setNote(true)} className="h-line" style={{ background: "none", border: "none", padding: 0, color: T.tealDk, fontSize: 13, cursor: "pointer" }}>Forgot password?</button></span>
-            <input type="password" autoComplete="current-password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(""); }} placeholder="Shared admin password" className="f-teal" style={input} />
-          </label>
-          {note && <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: T.wash, color: T.tealDk, borderRadius: 12, padding: "10px 12px", fontSize: 13.5 }}><i className="ph ph-info" style={{ marginTop: 2 }} />The shared admin password is managed by NEYU’s owner. Individual resets arrive with staff accounts.</div>}
-          {err && <div role="alert" style={{ display: "flex", gap: 8, alignItems: "center", background: T.peach, color: T.peachInk, borderRadius: 12, padding: "10px 12px", fontSize: 14 }}><i className="ph ph-warning-circle" />{err}</div>}
-          <button type="submit" disabled={busy} className="h-primary" style={{ height: 46, borderRadius: 12, border: "none", background: T.teal, color: T.card, fontSize: 15, fontWeight: 500, cursor: "pointer", transition: "background 200ms", opacity: busy ? 0.8 : 1 }}>{busy ? "Signing in…" : "Sign in"}</button>
-          <p style={{ margin: 0, fontSize: 13, color: T.faint, lineHeight: 1.5 }}>Using the shared clinic admin account. Individual staff sign-in is coming in Phase 2. Every sign-in is recorded in the audit log.</p>
-        </form>
+
+        {step === "password" && (
+          <form onSubmit={submitPassword} style={card}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={label}>Work email</span>
+              <input type="text" autoComplete="username" value={id} onChange={(e) => { setId(e.target.value); setErr(""); }} className="f-teal" style={input} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span style={label}>Password</span><button type="button" onClick={() => setNote(true)} className="h-line" style={{ background: "none", border: "none", padding: 0, color: T.tealDk, fontSize: 13, cursor: "pointer" }}>Forgot password?</button></span>
+              <input type="password" autoComplete="current-password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(""); }} className="f-teal" style={input} />
+            </label>
+            {note && <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: T.wash, color: T.tealDk, borderRadius: 12, padding: "10px 12px", fontSize: 13.5 }}><i className="ph ph-info" style={{ marginTop: 2 }} />Ask your NEYU super admin to reset your password or 2-step code.</div>}
+            {errBox}
+            {primary("Continue", "Checking…")}
+            <p style={{ margin: 0, fontSize: 13, color: T.faint, lineHeight: 1.5 }}>Next you’ll enter a 6-digit code from your authenticator app. Every sign-in is recorded in the audit log.</p>
+          </form>
+        )}
+
+        {step === "setup" && setup && (
+          <form onSubmit={submitCode} style={card} data-screen-label="01b 2-step setup">
+            <div><h2 style={{ margin: 0, fontSize: 19, fontWeight: 500 }}>Turn on your 2-step code</h2><p style={{ margin: "6px 0 0", fontSize: 14, color: T.ink2, lineHeight: 1.5 }}>Open Google Authenticator (or Microsoft Authenticator, 1Password) → <b>+</b> → <b>Scan a QR code</b>.</p></div>
+            <img src={setup.qr} alt="QR code for your authenticator app" width={180} height={180} style={{ alignSelf: "center", borderRadius: 12, border: `1px solid ${T.line}`, background: "#fff", padding: 6 }} />
+            <details style={{ fontSize: 13.5, color: T.ink2 }}>
+              <summary style={{ cursor: "pointer", color: T.tealDk }}>Can’t scan? Type this key instead</summary>
+              <code data-testid="mfa-secret" style={{ display: "block", marginTop: 8, padding: "10px 12px", background: T.wash, borderRadius: 10, fontSize: 14, letterSpacing: "0.08em", wordBreak: "break-all", userSelect: "all" }}>{setup.secret.match(/.{1,4}/g)?.join(" ")}</code>
+            </details>
+            {codeInput}
+            {errBox}
+            {primary("Turn on and sign in", "Checking…")}
+            <button type="button" onClick={back} className="h-line" style={{ border: "none", background: "none", color: T.ink2, fontSize: 13.5, cursor: "pointer" }}>Back</button>
+          </form>
+        )}
+
+        {step === "code" && (
+          <form onSubmit={submitCode} style={card} data-screen-label="01b 2-step code">
+            <div><h2 style={{ margin: 0, fontSize: 19, fontWeight: 500 }}>Enter your 2-step code</h2><p style={{ margin: "6px 0 0", fontSize: 14, color: T.ink2, lineHeight: 1.5 }}>Open your authenticator app and type the 6-digit code for NEYU Health.</p></div>
+            {codeInput}
+            {errBox}
+            {primary("Sign in", "Checking…")}
+            <button type="button" onClick={back} className="h-line" style={{ border: "none", background: "none", color: T.ink2, fontSize: 13.5, cursor: "pointer" }}>Use a different account</button>
+          </form>
+        )}
+
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13, color: T.faint }}>
           <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><i className="ph ph-lock-simple" />Authorized NEYU staff only</span>
           <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><i className="ph ph-map-pin" />Health data stored in Canada</span>
@@ -72,7 +138,7 @@ export function LockScreen({ actor, minutes, onUnlock, onSignOut }: { actor: str
   const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pw) return setErr("Enter the admin password to continue.");
+    if (!pw) return setErr("Enter your password to continue.");
     setBusy(true);
     try { await postAction({ action: "session.unlock", password: pw }); setPw(""); onUnlock(); }
     catch (x: any) { setErr(x.message); }
@@ -84,7 +150,7 @@ export function LockScreen({ actor, minutes, onUnlock, onSignOut }: { actor: str
         <span style={{ width: 52, height: 52, borderRadius: 16, background: T.wash, color: T.teal, display: "grid", placeItems: "center", fontSize: 24, margin: "0 auto" }}><i className="ph ph-lock-simple" /></span>
         <div><h2 id="lk-title" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>Your session was locked for security.</h2><p style={{ margin: "6px 0 0", fontSize: 14, color: T.ink2 }}>Locked after {minutes} minutes of inactivity. Patient information is hidden until you sign in again.</p></div>
         <div style={{ fontSize: 13.5, color: T.faint }}>{actor}</div>
-        <input type="password" aria-label="Admin password" value={pw} autoFocus onChange={(e) => { setPw(e.target.value); setErr(""); }} placeholder="Admin password" autoComplete="current-password" className="f-teal" style={{ ...input, textAlign: "left" }} />
+        <input type="password" aria-label="Your password" value={pw} autoFocus onChange={(e) => { setPw(e.target.value); setErr(""); }} placeholder="Your password" autoComplete="current-password" className="f-teal" style={{ ...input, textAlign: "left" }} />
         {err && <div role="alert" style={{ fontSize: 13.5, color: T.peachInk }}>{err}</div>}
         <button type="submit" disabled={busy} className="h-primary" style={{ height: 46, borderRadius: 12, border: "none", background: T.teal, color: T.card, fontSize: 15, fontWeight: 500, cursor: "pointer" }}>{busy ? "Checking…" : "Continue session"}</button>
         <button type="button" onClick={onSignOut} className="h-line" style={{ border: "none", background: "none", color: T.ink2, fontSize: 13.5, cursor: "pointer" }}>Sign out instead</button>

@@ -90,7 +90,7 @@ export default function Settings({ tab, setTab }: { tab: string; setTab: (t: str
           {tab === "roles" && (
             <div data-screen-label="19 Staff and Roles" style={card}>
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}><h2 style={S.h2}>Staff &amp; Roles</h2><Phase2 big /></div>
-              <p style={{ margin: "6px 0 16px", fontSize: 14, color: T.ink2 }}>Not active yet. Today everyone signs in with the shared admin password. This is the planned permission model for individual staff accounts.</p>
+              <p style={{ margin: "6px 0 16px", fontSize: 14, color: T.ink2 }}>Every staff member now signs in with their own email, password and 2-step code. Inviting staff and changing roles from this screen comes next; until then use <code>npm run staff</code>. Planned permission model:</p>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 520, opacity: 0.85 }}>
                   <thead><tr style={{ textAlign: "left", fontSize: 13, color: T.ink2 }}><th style={{ padding: "10px 0", fontWeight: 500 }}>Area</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Owner / Admin</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Clinician</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Front Desk</th></tr></thead>
