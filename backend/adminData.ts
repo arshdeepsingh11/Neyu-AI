@@ -269,7 +269,7 @@ export async function analytics(range: string | null, from?: string | null, to?:
 export async function activityFeed(take = 6): Promise<ActivityItem[]> {
   const [refs, devs, convs, labs, res, pts] = await Promise.all([
     prisma.referralSubmission.findMany({ orderBy: { createdAt: "desc" }, take, select: { id: true, createdAt: true, patientName: true } }),
-    prisma.deviceConnection.findMany({ where: { connectedAt: { not: null } }, orderBy: { connectedAt: "desc" }, take, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
+    prisma.deviceConnection.findMany({ where: { connectedAt: { not: null } }, orderBy: { connectedAt: { sort: "desc", nulls: "last" } }, take, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
     prisma.albaConversation.findMany({ orderBy: { createdAt: "desc" }, take, select: { id: true, createdAt: true, sessionId: true, patient: { select: { id: true, firstName: true, lastName: true } } } }),
     prisma.labResult.findMany({ orderBy: { createdAt: "desc" }, take, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
     prisma.appointment.findMany({ where: { rescheduleRequestedAt: { not: null } }, orderBy: { rescheduleRequestedAt: "desc" }, take, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
@@ -492,7 +492,7 @@ export async function revealHealth(patientId: string): Promise<HealthRevealDTO> 
 const fmtRef = (lo: number | null, hi: number | null, txt: string | null) => txt || (lo != null && hi != null ? `${lo}–${hi}` : hi != null ? `< ${hi}` : lo != null ? `> ${lo}` : "—");
 
 export async function revealLabs(patientId: string): Promise<LabDTO[]> {
-  const labs = await prisma.labResult.findMany({ where: { patientId }, orderBy: [{ collectedAt: "desc" }, { createdAt: "desc" }] });
+  const labs = await prisma.labResult.findMany({ where: { patientId }, orderBy: [{ collectedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }] });
   return labs.map((l) => {
     const flag = l.value != null && l.refHigh != null && l.value > l.refHigh ? "above" : l.value != null && l.refLow != null && l.value < l.refLow ? "below" : null;
     return {
@@ -689,14 +689,14 @@ export async function boot(actor: string): Promise<BootDTO> {
 
 export async function search(q: string): Promise<SearchDTO> {
   const s = q.trim();
-  const contains = { contains: s };
+  const contains = { contains: s, mode: "insensitive" as const }; // PostgreSQL text match is case-sensitive by default
   const digits = s.replace(/\D/g, "");
   const [pts, vis, refs] = await Promise.all([
     prisma.patient.findMany({
-      where: s ? { OR: [{ firstName: contains }, { lastName: contains }, { email: { contains: s.toLowerCase() } }, { id: contains }, ...(digits.length >= 3 ? [{ phone: { contains: digits } }] : []), ...(s.includes(" ") ? [{ AND: [{ firstName: { contains: s.split(" ")[0] } }, { lastName: { contains: s.split(" ").slice(1).join(" ") } }] }] : [])] } : {},
-      orderBy: { lastLoginAt: "desc" }, take: s ? 5 : 3, select: { id: true, firstName: true, lastName: true, email: true, phone: true, emailVerifiedAt: true },
+      where: s ? { OR: [{ firstName: contains }, { lastName: contains }, { email: { contains: s.toLowerCase() } }, { id: contains }, ...(digits.length >= 3 ? [{ phone: { contains: digits } }] : []), ...(s.includes(" ") ? [{ AND: [{ firstName: { contains: s.split(" ")[0], mode: "insensitive" as const } }, { lastName: { contains: s.split(" ").slice(1).join(" "), mode: "insensitive" as const } }] }] : [])] } : {},
+      orderBy: { lastLoginAt: { sort: "desc", nulls: "last" } }, take: s ? 5 : 3, select: { id: true, firstName: true, lastName: true, email: true, phone: true, emailVerifiedAt: true },
     }),
-    prisma.visitor.findMany({ where: s ? { id: { contains: s.toUpperCase().replace(/^V_/, "v_") } } : {}, orderBy: { lastSeenAt: "desc" }, take: s ? 4 : 2, select: { id: true, firstSeenAt: true, pageCount: true, patientId: true, lastSeenAt: true } }),
+    prisma.visitor.findMany({ where: s ? { id: { contains: s.replace(/^v_/i, ""), mode: "insensitive" as const } } : {}, orderBy: { lastSeenAt: "desc" }, take: s ? 4 : 2, select: { id: true, firstSeenAt: true, pageCount: true, patientId: true, lastSeenAt: true } }),
     prisma.referralSubmission.findMany({
       where: s ? { OR: [{ patientName: contains }, { id: { endsWith: s.replace(/^R-/i, "").toLowerCase() } }, { referringPhysician: contains }] } : {},
       orderBy: { createdAt: "desc" }, take: s ? 4 : 2, select: { id: true, patientName: true, specialties: true, urgency: true, referringPhysician: true, status: true },

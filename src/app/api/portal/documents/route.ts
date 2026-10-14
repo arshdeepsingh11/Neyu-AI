@@ -11,7 +11,7 @@ import { readDocument, countPages, docDTO, DOC_SELECT, DOC_MIME, MAX_DOC_BYTES }
 export const maxDuration = 90;
 
 export const GET = () => withPatient(async ({ patient }) => {
-  const docs = await prisma.healthDocument.findMany({ where: { patientId: patient.id, status: { not: "failed" } }, orderBy: [{ docDate: "desc" }, { createdAt: "desc" }], select: DOC_SELECT });
+  const docs = await prisma.healthDocument.findMany({ where: { patientId: patient.id, status: { not: "failed" } }, orderBy: [{ docDate: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }], select: DOC_SELECT });
   return { documents: docs.map(docDTO) };
 });
 

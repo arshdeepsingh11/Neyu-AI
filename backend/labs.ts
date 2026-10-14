@@ -11,7 +11,7 @@ const fmt = (d: Date, tz: string) => new Intl.DateTimeFormat("en-US", { month: "
 
 /** Tests due within `withinDays` (or overdue), soonest first. */
 export async function getRetests(patient: { id: string; timezone: string }, withinDays = 30): Promise<RetestDTO[]> {
-  const rows = await prisma.labResult.findMany({ where: { patientId: patient.id, status: "final", collectedAt: { not: null } }, orderBy: { collectedAt: "desc" }, select: { code: true, name: true, value: true, refLow: true, refHigh: true, collectedAt: true } });
+  const rows = await prisma.labResult.findMany({ where: { patientId: patient.id, status: "final", collectedAt: { not: null } }, orderBy: { collectedAt: { sort: "desc", nulls: "last" } }, select: { code: true, name: true, value: true, refLow: true, refHigh: true, collectedAt: true } });
   const seen = new Set<string>(), out: (RetestDTO & { t: number })[] = [];
   const now = Date.now(), today = dayKey(new Date(), patient.timezone);
   for (const r of rows) {
