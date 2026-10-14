@@ -15,7 +15,7 @@ import { refStatus, revealHealth, revealLabs, revealAI, patientsList, auditList,
 import { PROVIDER_NAMES } from "@/lib/portal/devices";
 
 const TZ = "America/Edmonton";
-type Ctx = { actor: string; ip: string };
+type Ctx = { actor: string; ip: string; role?: string; staffId?: string };
 type Result = { ok: true; message?: string; undo?: Record<string, unknown>; data?: unknown; file?: { name: string; mime: string; content: string } };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ const stamp = () => new Date().toISOString().slice(0, 10);
 
 // ── Actions ──────────────────────────────────────────────────────────────
 export async function runAction(b: any, c: Ctx): Promise<Result> {
-  const log = (e: Omit<Parameters<typeof adminLog>[0], "actor" | "ip">) => adminLog({ ...e, actor: c.actor, ip: c.ip });
+  const log = (e: Omit<Parameters<typeof adminLog>[0], "actor" | "ip">) => adminLog({ ...e, actor: c.actor, ip: c.ip, role: c.role, staffId: c.staffId });
 
   switch (b?.action) {
     // ── Privacy: reveal masked sections (reason required) ──

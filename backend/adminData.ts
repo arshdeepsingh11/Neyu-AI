@@ -673,7 +673,7 @@ export async function settings(): Promise<SettingsDTO> {
   };
 }
 
-export async function boot(actor: string): Promise<BootDTO> {
+export async function boot(actor: string, role = "Admin (shared)"): Promise<BootDTO> {
   const [queue, ref, testP, activity] = await Promise.all([
     loadQueue(),
     prisma.referralSubmission.findFirst({ where: { status: "received" }, orderBy: { createdAt: "desc" }, select: { id: true, patientName: true, specialties: true, createdAt: true } }),
@@ -681,7 +681,7 @@ export async function boot(actor: string): Promise<BootDTO> {
     activityFeed(3),
   ]);
   return {
-    actor, queueCount: queue.length, emergencyCount: queue.filter((q) => q.priority === "Emergency").length,
+    actor, role, queueCount: queue.length, emergencyCount: queue.filter((q) => q.priority === "Emergency").length,
     latestReferral: ref ? { id: ref.id, code: shortCode("R", ref.id), label: `${ref.patientName || "(no name)"} · ${list(ref.specialties)[0] || "Referral"} · ${fmtShort(ref.createdAt, true)}` } : null,
     emailConfigured: emailConfigured(), hasTestData: testP > 0, activity,
   };

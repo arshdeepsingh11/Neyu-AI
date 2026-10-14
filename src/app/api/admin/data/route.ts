@@ -12,7 +12,9 @@ import { backfillVisitors } from "@backend/visitors";
 
 export async function GET(req: Request) {
   try {
-    const { actor } = await requireAdmin();
+    const admin = await requireAdmin();
+    const { actor } = admin;
+    const who = { actor, role: admin.role, staffId: admin.staff?.id };
     const { ip } = await clientMeta();
     const q = new URL(req.url).searchParams;
     const view = q.get("view") || "";
@@ -21,7 +23,7 @@ export async function GET(req: Request) {
     let out: unknown;
 
     switch (view) {
-      case "boot": out = await data.boot(actor); break;
+      case "boot": out = await data.boot(actor, admin.role); break;
       case "overview": out = await data.overview(range, from, to); break;
       case "inbox": out = { queue: await data.loadQueue() }; break;
       case "analytics": out = await data.analytics(range, from, to); break;
@@ -29,7 +31,7 @@ export async function GET(req: Request) {
       case "patient": {
         const p = await data.patient360(id);
         if (!p) throw new HttpError(404, "Patient not found.");
-        if (q.get("log") === "1") await adminLog({ actor, ip, kind: "View", action: "Opened Patient 360", resource: "Patient record", subjectType: "patient", subjectId: p.id, subject: p.name });
+        if (q.get("log") === "1") await adminLog({ ...who, ip, kind: "View", action: "Opened Patient 360", resource: "Patient record", subjectType: "patient", subjectId: p.id, subject: p.name });
         out = p;
         break;
       }
@@ -41,7 +43,7 @@ export async function GET(req: Request) {
       case "visitor": {
         const v = await data.visitorRecord(id);
         if (!v) throw new HttpError(404, "Visitor not found.");
-        if (q.get("log") === "1") await adminLog({ actor, ip, kind: "View", action: "Opened visitor record", resource: "Visitor record", subjectType: "visitor", subjectId: v.id, subject: "Visitor " + v.id });
+        if (q.get("log") === "1") await adminLog({ ...who, ip, kind: "View", action: "Opened visitor record", resource: "Visitor record", subjectType: "visitor", subjectId: v.id, subject: "Visitor " + v.id });
         out = v;
         break;
       }
@@ -49,7 +51,7 @@ export async function GET(req: Request) {
       case "referral": {
         const r = await data.referralDetail(id);
         if (!r) throw new HttpError(404, "Referral not found.");
-        if (q.get("log") === "1") await adminLog({ actor, ip, kind: "View", action: "Viewed referral", resource: "Referral " + r.code, subjectType: "referral", subjectId: r.id, subject: r.patient });
+        if (q.get("log") === "1") await adminLog({ ...who, ip, kind: "View", action: "Viewed referral", resource: "Referral " + r.code, subjectType: "referral", subjectId: r.id, subject: r.patient });
         out = r;
         break;
       }
@@ -59,7 +61,7 @@ export async function GET(req: Request) {
         const a = await data.aiDetail(id);
         if (!a) throw new HttpError(404, "Item not found.");
         const what = { symptom: "symptom check", alba: "Neyu conversation", assessment: "assessment", lab: "lab explainer" }[a.kind];
-        await adminLog({ actor, ip, kind: "View", action: "Viewed " + what, resource: "AI · " + a.id, subjectType: a.isVisitor ? "visitor" : "patient", subjectId: a.whoId, subject: a.who });
+        await adminLog({ ...who, ip, kind: "View", action: "Viewed " + what, resource: "AI · " + a.id, subjectType: a.isVisitor ? "visitor" : "patient", subjectId: a.whoId, subject: a.who });
         out = a;
         break;
       }

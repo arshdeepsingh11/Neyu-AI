@@ -120,7 +120,7 @@ export interface SettingsDTO {
 }
 
 export interface BootDTO {
-  actor: string; queueCount: number; emergencyCount: number; latestReferral: { id: string; code: string; label: string } | null;
+  actor: string; role: string; queueCount: number; emergencyCount: number; latestReferral: { id: string; code: string; label: string } | null;
   emailConfigured: boolean; hasTestData: boolean; activity: ActivityItem[];
 }
 
