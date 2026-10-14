@@ -4,7 +4,8 @@
 #
 #   PostgreSQL  localhost:5432   user neyu / password neyu_local / database neyu
 #   Redis       localhost:6379   (cache + job queues, used from Phase 3)
-#   MinIO       localhost:9000   S3 file storage · console http://localhost:9001 (neyu / neyu_local_minio)
+#   MinIO       (off for now)    S3 file storage — the minio/minio image was removed from Docker Hub;
+#                                a replacement is chosen in Phase 3. Start it later with: docker compose --profile files up -d
 #   Mailpit     localhost:1025   catches every email · inbox http://localhost:8025
 #
 # These passwords are for your PC only. Production uses its own secrets.
@@ -21,7 +22,7 @@ services:
       POSTGRES_DB: neyu
       TZ: UTC
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     # Same settings we will use in production: query statistics + log slow queries (> 200 ms).
@@ -52,6 +53,7 @@ services:
       retries: 20
 
   minio:
+    profiles: ["files"] # off by default until Phase 3
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -71,6 +73,7 @@ services:
 
   # Creates the private "neyu-files" bucket once MinIO is up, then exits.
   minio-init:
+    profiles: ["files"]
     image: minio/mc:latest
     depends_on:
       minio:
