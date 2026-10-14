@@ -2,8 +2,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// NEYU Platform — schema v2 (PostgreSQL). See NEYU-System-Design-v2.pdf.
+// Existing models keep their names so the app keeps working; the foundation
+// models (organizations, staff + roles, consent, audit, deletion, reports) are
+// added at the end and are wired into features in Phase 3.
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -23,6 +27,7 @@ model PageVisit {
 
   @@index([path])
   @@index([sessionId])
+  @@index([createdAt(ops: TimestampMinMaxOps)], type: Brin) // tiny index for time-range scans + retention deletes
 }
 
 model ReferralSubmission {
@@ -50,13 +55,16 @@ model ReferralSubmission {
   scheduledAt        DateTime?
   staffNote          String?
 
+  orgId String @default("org_neyu")
+
   @@index([sessionId])
   @@index([status, createdAt])
   @@index([patientId, createdAt])
+  @@index([orgId, status, createdAt])
 }
 
 model SymptomCheckLog {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   specialty             String
   description           String
   emergency             Boolean
@@ -64,9 +72,9 @@ model SymptomCheckLog {
   recommendedDiscipline String
   summary               String
   sessionId             String
-  createdAt             DateTime @default(now())
+  createdAt             DateTime  @default(now())
   patientId             String?
-  patient               Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  patient               Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
   reviewedAt            DateTime? // admin console: emergency queue
   reviewedBy            String?
 
@@ -96,7 +104,7 @@ model AlbaMessage {
   text           String
   createdAt      DateTime         @default(now())
 
-  @@index([conversationId])
+  @@index([conversationId, createdAt])
 }
 
 model LongevityAssessment {
@@ -132,66 +140,79 @@ model LabResultCheck {
 // My Health Space — patient accounts and health data.
 // Real patient data must not go live before the Alberta HIA Privacy Impact
 // Assessment clears (see .env PORTAL_SIGNUP_OPEN).
-// JSON fields are stored as String (SQLite); parse with helpers in
-// backend/patientData.ts. Schema is Postgres-compatible.
+// JSON-in-text fields stay String for now (parsed in backend/patientData.ts);
+// new tables use native Json (jsonb).
 // ─────────────────────────────────────────────────────────────────────────
 
 model Patient {
-  id              String    @id @default(cuid())
-  email           String    @unique // always stored lower-cased
+  id              String       @id @default(cuid())
+  email           String       @unique // always stored lower-cased
   passwordHash    String // scrypt$N$r$p$salt$hash
   firstName       String
   lastName        String
   dateOfBirth     DateTime?
   phone           String?
-  timezone        String    @default("America/Edmonton")
-  photoVersion    Int       @default(0) // > 0 = has photo (URL version); ≤ 0 = none. Only ever grows in magnitude (cache-busting)
+  timezone        String       @default("America/Edmonton")
+  photoVersion    Int          @default(0) // > 0 = has photo (URL version); ≤ 0 = none. Only ever grows in magnitude (cache-busting)
   termsAcceptedAt DateTime
   emailVerifiedAt DateTime? // null until the 6-digit email code is confirmed
   lastLoginAt     DateTime?
-  failedLogins    Int       @default(0)
+  failedLogins    Int          @default(0)
   lockedUntil     DateTime?
-  accountStatus   String    @default("active") // active | deactivated | deletion_requested (set by the clinic)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  accountStatus   String       @default("active") // active | deactivated | deletion_requested (set by the clinic)
+  orgId           String       @default("org_neyu")
+  org             Organization @relation(fields: [orgId], references: [id])
+  deletedAt       DateTime? // set when a deletion request is executed (row kept only as a stub)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  sessions        PatientSession[]
-  emailCodes      EmailCode[]
-  photo           PatientPhoto?
-  settings        PatientSettings?
-  goals           Goal[]
-  careTeam        CareTeamMember[]
-  devices         DeviceConnection[]
-  pairings        DevicePairing[]
-  readings        HealthReading[]
-  labResults      LabResult[]
-  protocolItems   ProtocolItem[]
-  protocolLogs    ProtocolLog[]
-  appointments    Appointment[]
-  visitQuestions  VisitQuestion[]
-  accessLogs      AccessLog[]
-  referrals       ReferralSubmission[]
-  symptomChecks   SymptomCheckLog[]
-  conversations   AlbaConversation[]
-  assessments     LongevityAssessment[]
-  labChecks       LabResultCheck[]
-  visitors        Visitor[]
-  bpReadings      BpReading[]
-  lifestyleLogs   LifestyleLog[]
-  careGiven       CareLink[]       @relation("CareOwner")
-  careReceived    CareLink[]       @relation("CareGiver")
-  shareLinks      ShareLink[]
-  challengesMade  Challenge[]
-  challengeJoins  ChallengeMember[]
-  rewardEvents    RewardEvent[]
-  notes           GeneratedNote[]
-  healthProfile   HealthProfile?
-  documents       HealthDocument[]
-  foodLogs        FoodLog[]
-  activity        ActivityEvent[]
-  checkIns        HealthCheckIn[]
-  insights        HealthInsight[]
-  profileChanges  ProfileChange[]
+  sessions         PatientSession[]
+  emailCodes       EmailCode[]
+  photo            PatientPhoto?
+  settings         PatientSettings?
+  goals            Goal[]
+  careTeam         CareTeamMember[]
+  devices          DeviceConnection[]
+  pairings         DevicePairing[]
+  readings         HealthReading[]
+  labResults       LabResult[]
+  protocolItems    ProtocolItem[]
+  protocolLogs     ProtocolLog[]
+  appointments     Appointment[]
+  visitQuestions   VisitQuestion[]
+  accessLogs       AccessLog[]
+  referrals        ReferralSubmission[]
+  symptomChecks    SymptomCheckLog[]
+  conversations    AlbaConversation[]
+  assessments      LongevityAssessment[]
+  labChecks        LabResultCheck[]
+  visitors         Visitor[]
+  bpReadings       BpReading[]
+  lifestyleLogs    LifestyleLog[]
+  careGiven        CareLink[]            @relation("CareOwner")
+  careReceived     CareLink[]            @relation("CareGiver")
+  shareLinks       ShareLink[]
+  challengesMade   Challenge[]
+  challengeJoins   ChallengeMember[]
+  rewardEvents     RewardEvent[]
+  notes            GeneratedNote[]
+  healthProfile    HealthProfile?
+  documents        HealthDocument[]
+  foodLogs         FoodLog[]
+  activity         ActivityEvent[]
+  checkIns         HealthCheckIn[]
+  insights         HealthInsight[]
+  profileChanges   ProfileChange[]
+  consents         Consent[]
+  emailPreference  EmailPreference?
+  guardianOf       GuardianLink[]        @relation("Guardian")
+  guardedBy        GuardianLink[]        @relation("Ward")
+  deletionRequests DeletionRequest[]
+  exportRequests   ExportRequest[]
+  reports          PatientReport[]
+
+  @@index([orgId, createdAt])
+  @@index([accountStatus])
 }
 
 // Only a SHA-256 hash of the session token is stored — a leaked database
@@ -238,26 +259,26 @@ model PatientPhoto {
 
 // Consents (Privacy & Data) + notification preferences — one row per patient.
 model PatientSettings {
-  patientId      String   @id
-  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  shareWearables Boolean  @default(true)
-  shareLabs      Boolean  @default(true)
-  shareRecords   Boolean  @default(true)
-  albaAccess     Boolean  @default(true)
-  notifDaily     Boolean  @default(true)
-  notifWorth     Boolean  @default(true)
-  notifProtocol  Boolean  @default(true)
-  notifAppt      Boolean  @default(true)
+  patientId       String   @id
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  shareWearables  Boolean  @default(true)
+  shareLabs       Boolean  @default(true)
+  shareRecords    Boolean  @default(true)
+  albaAccess      Boolean  @default(true)
+  notifDaily      Boolean  @default(true)
+  notifWorth      Boolean  @default(true)
+  notifProtocol   Boolean  @default(true)
+  notifAppt       Boolean  @default(true)
   // Health Universe
-  city           String? // "Calgary" — for the daily brief (weather + air quality)
-  province       String? // "AB"
-  lat            Float?
-  lon            Float?
-  briefEmail     Boolean  @default(false) // email the ANRA Today brief each morning
-  learnUsage     Boolean  @default(true)
-  aiInsights     Boolean  @default(true) // Neyu notices changes and shows insights proactively // Neyu learns from which screens / actions the patient uses
+  city            String? // "Calgary" — for the daily brief (weather + air quality)
+  province        String? // "AB"
+  lat             Float?
+  lon             Float?
+  briefEmail      Boolean  @default(false) // email the ANRA Today brief each morning
+  learnUsage      Boolean  @default(true)
+  aiInsights      Boolean  @default(true) // Neyu notices changes and shows insights proactively // Neyu learns from which screens / actions the patient uses
   leaderboardName String? // shown in challenges ("Arsh S."); null = first name + initial
-  updatedAt      DateTime @updatedAt
+  updatedAt       DateTime @updatedAt
 }
 
 model Goal {
@@ -288,26 +309,26 @@ model CareTeamMember {
 // provider: apple | oura | whoop | garmin | gfit
 // status: pending (token issued, waiting for first sync) | connected | disconnected
 model DeviceConnection {
-  id          String    @id @default(cuid())
-  patientId   String
-  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  provider    String
-  status      String    @default("pending")
-  tokenHash   String?   @unique // SHA-256 of the device ingest token
-  tokenHint   String? // last 4 chars, for display only
-  dataTypes   String    @default("[]") // JSON array of shared metric keys
+  id              String    @id @default(cuid())
+  patientId       String
+  patient         Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider        String
+  status          String    @default("pending")
+  tokenHash       String?   @unique // SHA-256 of the device ingest token
+  tokenHint       String? // last 4 chars, for display only
+  dataTypes       String    @default("[]") // JSON array of shared metric keys
   // OAuth sources (Oura, Withings, WHOOP…): tokens are AES-256-GCM encrypted
   accessTokenEnc  String?
   refreshTokenEnc String?
   tokenExpiresAt  DateTime?
   externalUserId  String?
   lastError       String?
-  connectedAt DateTime?
-  lastSyncAt  DateTime?
-  lastAttemptAt DateTime? // every ingest call, even when nothing was stored
-  lastResult    String? // JSON: { stored, metrics[], rejected[] } of the last attempt
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  connectedAt     DateTime?
+  lastSyncAt      DateTime?
+  lastAttemptAt   DateTime? // every ingest call, even when nothing was stored
+  lastResult      String? // JSON: { stored, metrics[], rejected[] } of the last attempt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@unique([patientId, provider])
 }
@@ -360,6 +381,7 @@ model LabResult {
 
   @@index([patientId, code, collectedAt])
   @@index([patientId, collectedAt])
+  @@index([documentId])
 }
 
 model ProtocolItem {
@@ -416,10 +438,12 @@ model Appointment {
   prepSavedAt           DateTime?
   prepReviewedAt        DateTime? // admin console: visit-prep queue
   staffNotes            String?
+  orgId                 String          @default("org_neyu")
   createdAt             DateTime        @default(now())
   questions             VisitQuestion[]
 
   @@index([patientId, startsAt])
+  @@index([orgId, startsAt])
 }
 
 // "Questions to ask" — kept even before an appointment exists; attached to
@@ -486,7 +510,7 @@ model OutboundClick {
   fromPath  String?
   createdAt DateTime @default(now())
 
-  @@index([createdAt])
+  @@index([createdAt(ops: TimestampMinMaxOps)], type: Brin)
   @@index([host, createdAt])
 }
 
@@ -515,7 +539,6 @@ model AdminAuditEvent {
   @@index([subjectId, createdAt])
   @@index([kind, createdAt])
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────
 // Health Universe (My Health Space): home blood pressure, lifestyle
@@ -560,17 +583,17 @@ model LifestyleLog {
 // A caregiver (family member) who can view a patient's summary.
 // Created by the patient (owner); accepted by the caregiver's own account.
 model CareLink {
-  id            String    @id @default(cuid())
-  ownerId       String
-  owner         Patient   @relation("CareOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  caregiverId   String?
-  caregiver     Patient?  @relation("CareGiver", fields: [caregiverId], references: [id], onDelete: Cascade)
-  email         String // invited email (lower-case)
-  relation      String    @default("Family")
-  status        String    @default("pending") // pending | active | revoked
-  inviteHash    String?   @unique
-  createdAt     DateTime  @default(now())
-  acceptedAt    DateTime?
+  id          String    @id @default(cuid())
+  ownerId     String
+  owner       Patient   @relation("CareOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  caregiverId String?
+  caregiver   Patient?  @relation("CareGiver", fields: [caregiverId], references: [id], onDelete: Cascade)
+  email       String // invited email (lower-case)
+  relation    String    @default("Family")
+  status      String    @default("pending") // pending | active | revoked
+  inviteHash  String?   @unique
+  createdAt   DateTime  @default(now())
+  acceptedAt  DateTime?
 
   @@index([ownerId])
   @@index([caregiverId])
@@ -680,8 +703,8 @@ model DevicePairing {
 model ServiceRequest {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
-  service   String   // virtual-care | hypertension-clinic | package | membership | at-home
-  choice    String?  // visit type / package / tier / tests
+  service   String // virtual-care | hypertension-clinic | package | membership | at-home
+  choice    String? // visit type / package / tier / tests
   name      String
   email     String
   phone     String?
@@ -690,36 +713,39 @@ model ServiceRequest {
   page      String?
   sessionId String?
   status    String   @default("new") // new | contacted | booked | closed
+  orgId     String   @default("org_neyu")
 
   @@index([createdAt])
   @@index([service])
+  @@index([orgId, status, createdAt])
 }
-
 
 // Personal Health Space: any report from any provider (upload, scan, photo or
 // a connected BioAro service). The original file is never altered; Neyu's
 // reading is stored separately (extracted + summary) and labelled as AI.
 model HealthDocument {
-  id        String    @id @default(cuid())
+  id        String          @id @default(cuid())
   patientId String
-  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
   title     String
-  kind      String    @default("other") // lab | imaging | ecg | cardiology | specialist | discharge | prescription | visit | other
+  kind      String          @default("other") // lab | imaging | ecg | cardiology | specialist | discharge | prescription | visit | other
   provider  String?
   docDate   DateTime?
-  source    String    @default("upload") // upload | scan | photo | bioaro
+  source    String          @default("upload") // upload | scan | photo | bioaro
   mime      String
   fileName  String
   size      Int
-  pages     Int       @default(0) // page count of the original (0 = not counted yet)
+  pages     Int             @default(0) // page count of the original (0 = not counted yet)
   data      Bytes
-  extracted String    @default("{}") // JSON { values:[{name,value,unit,ref,flag}], keyPoints:[] } — Neyu's reading
+  extracted String          @default("{}") // JSON { values:[{name,value,unit,ref,flag}], keyPoints:[] } — Neyu's reading
   summary   String? // Neyu's plain-language explanation (AI)
-  status    String    @default("review") // review | saved | failed
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  status    String          @default("review") // review | saved | failed
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  reports   PatientReport[]
 
   @@index([patientId, docDate])
+  @@index([patientId, createdAt])
 }
 
 model FoodLog {
@@ -806,4 +832,301 @@ model ProfileChange {
   at        DateTime @default(now())
 
   @@index([patientId, at])
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// FOUNDATION (schema v2) — organizations, staff + roles, compliance, reports.
+// Wired into features in Phase 3. Every admin action is permission-checked.
+// ═════════════════════════════════════════════════════════════════════════
+
+// NEYU Health itself, partners and any future clinic. Every patient belongs to one.
+model Organization {
+  id        String   @id @default(cuid()) // "org_neyu" for NEYU Health
+  slug      String   @unique
+  name      String
+  kind      String   @default("clinic") // platform | clinic | partner
+  status    String   @default("active") // active | suspended
+  settings  Json     @default("{}") // e.g. { reportApproval: "required", reminderDays: 3 }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinics     Clinic[]
+  patients    Patient[]
+  roles       Role[]
+  memberships Membership[]
+  reports     PatientReport[]
+}
+
+model Clinic {
+  id        String       @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  slug      String
+  name      String
+  address   String?
+  phone     String?
+  fax       String?
+  timezone  String       @default("America/Edmonton")
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+
+  memberships Membership[]
+
+  @@unique([orgId, slug])
+}
+
+// Admin / staff accounts (separate from patients). Passwords: scrypt like patients;
+// MFA secret is AES-256-GCM encrypted. Admins must enrol MFA (enforced in Phase 3).
+model StaffUser {
+  id           String    @id @default(cuid())
+  email        String    @unique // lower-cased
+  name         String
+  passwordHash String
+  mfaSecretEnc String?
+  mfaEnabledAt DateTime?
+  status       String    @default("active") // invited | active | suspended
+  lastLoginAt  DateTime?
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions        StaffSession[]
+  memberships     Membership[]
+  reportsCreated  PatientReport[] @relation("ReportCreatedBy")
+  reportsApproved PatientReport[] @relation("ReportApprovedBy")
+}
+
+// Only the SHA-256 of the session token is stored. Admin sessions are short (8 h).
+model StaffSession {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  staffId     String
+  staff       StaffUser @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  mfaVerified Boolean   @default(false)
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  expiresAt   DateTime
+
+  @@index([staffId])
+  @@index([expiresAt])
+}
+
+// A role is a named set of permissions. orgId = null → built-in role usable by every org.
+// New admin types are new rows here — no code change.
+model Role {
+  id          String        @id @default(cuid())
+  orgId       String?
+  org         Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  key         String // super_admin | org_admin | clinic_manager | care_staff | physician | support
+  name        String
+  description String?
+  isSystem    Boolean       @default(false) // system roles can't be deleted
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  permissions RolePermission[]
+  memberships Membership[]
+
+  @@unique([orgId, key])
+}
+
+// Catalogue of every permission the code checks, e.g. "reports.send".
+model Permission {
+  key         String @id
+  area        String // platform | staff | patients | reports | care | analytics | audit | privacy
+  description String
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId        String
+  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionKey String
+  permission    Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
+  scope         String     @default("full") // full | reason (break-glass: a reason is recorded) | own
+
+  @@id([roleId, permissionKey])
+}
+
+// "This person has this role in this organization (optionally one clinic)".
+model Membership {
+  id        String       @id @default(cuid())
+  staffId   String
+  staff     StaffUser    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  roleId    String
+  role      Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  clinicId  String?
+  clinic    Clinic?      @relation(fields: [clinicId], references: [id], onDelete: SetNull)
+  status    String       @default("active") // active | suspended
+  createdAt DateTime     @default(now())
+
+  @@unique([staffId, orgId, roleId])
+  @@index([orgId, status])
+}
+
+// Published versions of terms / privacy policy / AI notice / marketing consent text.
+model PolicyVersion {
+  id          String    @id @default(cuid())
+  kind        String // terms | privacy | ai | marketing | guardian
+  version     String // "2026-10-15"
+  url         String?
+  summary     String?
+  publishedAt DateTime  @default(now())
+  consents    Consent[]
+
+  @@unique([kind, version])
+}
+
+// Proof of consent: what, which version, when, how. Withdrawal is a new state, never a delete.
+model Consent {
+  id              String         @id @default(cuid())
+  patientId       String
+  patient         Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  kind            String // terms | privacy | ai | marketing | guardian
+  policyVersionId String?
+  policyVersion   PolicyVersion? @relation(fields: [policyVersionId], references: [id])
+  granted         Boolean
+  method          String // signup | settings | guardian | staff
+  ip              String?
+  userAgent       String?
+  createdAt       DateTime       @default(now())
+  withdrawnAt     DateTime?
+
+  @@index([patientId, kind, createdAt])
+}
+
+// Parent / guardian access to a minor's account. Ends at 18 unless renewed.
+model GuardianLink {
+  id         String    @id @default(cuid())
+  guardianId String
+  guardian   Patient   @relation("Guardian", fields: [guardianId], references: [id], onDelete: Cascade)
+  wardId     String
+  ward       Patient   @relation("Ward", fields: [wardId], references: [id], onDelete: Cascade)
+  relation   String    @default("Parent") // Parent | Legal guardian
+  status     String    @default("active") // pending | active | ended
+  consentAt  DateTime?
+  endsAt     DateTime? // the ward's 18th birthday
+  createdAt  DateTime  @default(now())
+
+  @@unique([guardianId, wardId])
+  @@index([wardId])
+}
+
+// Email choices (CASL). Sign-in codes are transactional and always sent.
+model EmailPreference {
+  patientId        String    @id
+  patient          Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  reminders        Boolean   @default(true)
+  news             Boolean   @default(false)
+  unsubscribeToken String    @unique @default(cuid())
+  unsubscribedAt   DateTime?
+  updatedAt        DateTime  @updatedAt
+}
+
+// "Delete my account": 30-day hold, then a worker erases everything for the patient.
+model DeletionRequest {
+  id           String    @id @default(cuid())
+  patientId    String
+  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  status       String    @default("pending") // pending | cancelled | running | completed | failed
+  reason       String?
+  requestedBy  String    @default("patient") // patient | guardian | staff
+  requestedAt  DateTime  @default(now())
+  scheduledFor DateTime // requestedAt + 30 days
+  cancelledAt  DateTime?
+  completedAt  DateTime?
+  summary      Json? // rows removed per table + files removed (the deletion certificate)
+
+  @@index([status, scheduledFor])
+  @@index([patientId])
+}
+
+model ExportRequest {
+  id          String    @id @default(cuid())
+  patientId   String
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  status      String    @default("pending") // pending | ready | expired | failed
+  fileKey     String? // object-storage key of the export file
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([patientId, createdAt])
+}
+
+// Unified, append-only audit log (replaces AdminAuditEvent + AccessLog writes in Phase 3).
+// Never updated or deleted by the app; archived after 7 years.
+model AuditEvent {
+  id               String   @id @default(cuid())
+  at               DateTime @default(now())
+  orgId            String?
+  actorType        String // staff | patient | guardian | system | device
+  actorId          String?
+  actorLabel       String? // name/email at the time of the event
+  action           String // view | create | update | delete | export | login | logout | send | approve | deny
+  resource         String // e.g. "patient.labs", "report"
+  subjectPatientId String?
+  subjectId        String?
+  reason           String? // required for break-glass access
+  result           String   @default("success") // success | denied | error
+  ip               String?
+  meta             Json?
+
+  @@index([at(ops: TimestampMinMaxOps)], type: Brin)
+  @@index([subjectPatientId, at])
+  @@index([actorId, at])
+  @@index([orgId, action, at])
+}
+
+// A report sent by staff to a patient (draft → ai_check → review → sent → viewed).
+model PatientReport {
+  id             String          @id @default(cuid())
+  orgId          String
+  org            Organization    @relation(fields: [orgId], references: [id])
+  patientId      String
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  documentId     String?
+  document       HealthDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  title          String
+  kind           String          @default("other") // lab | imaging | ecg | letter | summary | other
+  status         String          @default("draft") // draft | ai_check | review | sent | viewed | rejected | cancelled
+  note           String? // message to the patient
+  createdById    String
+  createdBy      StaffUser       @relation("ReportCreatedBy", fields: [createdById], references: [id])
+  approvedById   String?
+  approvedBy     StaffUser?      @relation("ReportApprovedBy", fields: [approvedById], references: [id])
+  rejectedReason String?
+  aiCheck        Json? // name/date-of-birth match + Neyu's reading
+  sentAt         DateTime?
+  undoUntil      DateTime? // sending can be undone for 10 minutes
+  viewedAt       DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  deliveries ReportDelivery[]
+
+  @@index([patientId, status, createdAt])
+  @@index([orgId, status, createdAt])
+  @@index([createdById, status])
+}
+
+model ReportDelivery {
+  id        String        @id @default(cuid())
+  reportId  String
+  report    PatientReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  channel   String // in_app | email | push
+  status    String        @default("queued") // queued | sent | failed | opened
+  sentAt    DateTime?
+  openedAt  DateTime?
+  error     String?
+  createdAt DateTime      @default(now())
+
+  @@index([reportId])
+  @@index([status, createdAt])
 }
