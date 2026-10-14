@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NEYU Health API (local)",
-    "description": "Run against your PC: npm run dev \u2192 baseUrl http://localhost:3000.\nOrder matters inside each folder (sign in first \u2014 Postman keeps the session cookie).\nOrigin header is required: the API rejects requests from other sites (CSRF protection).\nSet patientEmail / patientPassword / adminPassword in the collection Variables tab.",
+    "description": "Run against your PC: npm run dev → baseUrl http://localhost:3000.\nOrder matters inside each folder (sign in first — Postman keeps the session cookie).\nOrigin header is required: the API rejects requests from other sites (CSRF protection).\nVariables: patientEmail / patientPassword (demo patient), staffEmail / staffPassword (your staff account),\ntotpSecret = the key under 'Can't scan? Type this key' on the 2-step setup screen (Postman makes the 6-digit code from it).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -18,17 +18,25 @@
       "value": ""
     },
     {
-      "key": "adminPassword",
+      "key": "docId",
       "value": ""
     },
     {
-      "key": "docId",
+      "key": "staffEmail",
+      "value": "admin@neyuhealth.com"
+    },
+    {
+      "key": "staffPassword",
+      "value": ""
+    },
+    {
+      "key": "totpSecret",
       "value": ""
     }
   ],
   "item": [
     {
-      "name": "1 \u00b7 Public website",
+      "name": "1 · Public website",
       "item": [
         {
           "name": "Home page",
@@ -341,7 +349,7 @@
       ]
     },
     {
-      "name": "2 \u00b7 Patient (My Health Space)",
+      "name": "2 · Patient (My Health Space)",
       "item": [
         {
           "name": "Sign up (new test patient)",
@@ -693,7 +701,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "// Remember an existing report, so 'Download' still works when the upload below is a duplicate (409) on a re-run.",
+                  "const d = (pm.response.json().documents || [])[0]; if (d) pm.collectionVariables.set('docId', d.id);"
                 ]
               }
             }
@@ -912,17 +922,22 @@
       ]
     },
     {
-      "name": "3 \u00b7 Admin console",
+      "name": "3 · Admin console",
       "item": [
         {
-          "name": "Admin sign in",
+          "name": "Admin sign in · step 1 (email + password)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('asks for the 2-step code (not first-time setup)', () => {",
+                  "  if (j.step === 'setup') throw new Error('2-step is not set up yet: sign in once at /admin in the browser and scan the QR code first.');",
+                  "  pm.expect(j.step).to.eql('code');",
+                  "});"
                 ]
               }
             }
@@ -953,7 +968,76 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"Arsh (Postman)\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "raw": "{\n  \"identifier\": \"{{staffEmail}}\",\n  \"password\": \"{{staffPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin sign in · step 2 (2-step code)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Makes the 6-digit code from totpSecret (the key shown under 'Can't scan? Type this key' when you set up 2-step).",
+                  "const secret = String(pm.variables.get('totpSecret') || '').replace(/\\s/g, '').toUpperCase();",
+                  "if (!secret) throw new Error('Set totpSecret (your 2-step key) — see the collection description.');",
+                  "const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; let bits = '';",
+                  "for (const ch of secret) { const i = A.indexOf(ch); if (i < 0) throw new Error('totpSecret has a wrong character: ' + ch); bits += i.toString(2).padStart(5, '0'); }",
+                  "let hex = ''; for (let i = 0; i + 8 <= bits.length; i += 8) hex += parseInt(bits.substr(i, 8), 2).toString(16).padStart(2, '0');",
+                  "const step = Math.floor(Date.now() / 30000);",
+                  "const h = CryptoJS.HmacSHA1(CryptoJS.enc.Hex.parse(step.toString(16).padStart(16, '0')), CryptoJS.enc.Hex.parse(hex)).toString();",
+                  "const o = parseInt(h.slice(-1), 16);",
+                  "const n = (parseInt(h.substr(o * 2, 8), 16) & 0x7fffffff) % 1000000;",
+                  "pm.variables.set('totpCode', String(n).padStart(6, '0'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('signed in as staff', () => pm.expect(pm.response.json().actor).to.eql(pm.variables.get('staffEmail').toLowerCase()));",
+                  "// If this fails with 'code isn't right' right after another run: wait 30 seconds (each code works once)."
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/mfa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "mfa"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{totpCode}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -970,7 +1054,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('role is shown', () => pm.expect(pm.response.json().role).to.be.a('string').and.not.empty);"
                 ]
               }
             }
@@ -1287,10 +1372,10 @@
       ]
     },
     {
-      "name": "4 \u00b7 Security checks (should FAIL on purpose)",
+      "name": "4 · Security checks (should FAIL on purpose)",
       "item": [
         {
-          "name": "No session \u2192 401",
+          "name": "No session → 401",
           "event": [
             {
               "listen": "test",
@@ -1329,7 +1414,7 @@
           }
         },
         {
-          "name": "Wrong Origin \u2192 403",
+          "name": "Wrong Origin → 403",
           "event": [
             {
               "listen": "test",
@@ -1368,6 +1453,148 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"values\": {\n    \"sleepQuality\": 2\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin console without sign-in → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/data?view=boot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "data"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "boot"
+                }
+              ]
+            },
+            "description": "Run after 'Admin sign out'."
+          }
+        },
+        {
+          "name": "2-step code without password step → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/mfa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "mfa"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin wrong password → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));",
+                  "pm.test('does not say which part was wrong', () => pm.expect(pm.response.json().error).to.match(/email or password/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "login"
+              ]
+            },
+            "description": "One wrong try. 5 in a row lock the account for 15 minutes (npm run staff -- unlock <email>).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{staffEmail}}\",\n  \"password\": \"not-the-password\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
