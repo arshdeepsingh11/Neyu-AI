@@ -1,14 +1,32 @@
 # NEYU Health — go-live on the on-prem server (neyuhealth.com)
 
-**Stack:** Next.js 15 (Node 20 LTS), Prisma + SQLite (one file), PM2, Nginx, Let's Encrypt. Repo: `arshdeepsingh11/ANRAHealth-New`, branch **`japanese-style`**.
+**Stack:** Next.js 15 (Node 20 LTS), Prisma + PostgreSQL 16, PM2, Nginx, Let's Encrypt. Repo: `arshdeepsingh11/Neyu-AI`, branch **`japanese-style`**.
 
 ## 1. Server (Ubuntu 22/24, 2 vCPU, 4 GB RAM, 40 GB disk is enough to start)
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs nginx sqlite3 git certbot python3-certbot-nginx
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs nginx git certbot python3-certbot-nginx postgresql-16 postgresql-client-16
 sudo npm i -g pm2
 sudo mkdir -p /var/www/neyu /var/lib/neyu && sudo chown -R $USER /var/www/neyu /var/lib/neyu
-git clone -b japanese-style https://github.com/arshdeepsingh11/ANRAHealth-New.git /var/www/neyu
+git clone -b japanese-style https://github.com/arshdeepsingh11/Neyu-AI.git /var/www/neyu
 ```
+
+### PostgreSQL (once)
+```bash
+sudo -u postgres psql -c "CREATE USER neyu WITH PASSWORD 'STRONG_PASSWORD';"
+sudo -u postgres psql -c "CREATE DATABASE neyu OWNER neyu;"
+```
+Put the same password in `DATABASE_URL` in `.env`. PostgreSQL listens on localhost only (default) — keep it that way.
+
+### Moving from the old SQLite file (one time, Phase 9)
+```bash
+pm2 stop neyu-health                                   # short maintenance window
+cp /var/lib/neyu/neyu.db /var/backups/neyu-before-postgres.db
+npx prisma migrate deploy                              # creates all tables
+npm run db:import -- /var/lib/neyu/neyu.db             # copies + verifies every table
+npm run db:seed                                        # first super admin (password printed once)
+bash deploy/deploy.sh
+```
+Keep the SQLite file for 30 days as a fallback.
 
 ## 2. Secrets
 Copy `deploy/env.production.example` to `/var/www/neyu/.env` and fill it in. Arsh sends the real values **privately** (not email/chat in plain text). `chmod 600 .env`.
