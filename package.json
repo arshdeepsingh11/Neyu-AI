@@ -17,7 +17,8 @@
     "db:demo": "node scripts/admin-demo-data.mjs add",
     "db:demo:remove": "node scripts/admin-demo-data.mjs remove",
     "db:import": "node scripts/db-import-sqlite.mjs",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "staff": "node scripts/staff-admin.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
