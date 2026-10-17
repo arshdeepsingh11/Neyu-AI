@@ -8,7 +8,7 @@ import { audit } from "@backend/audit";
 import { withPatientMutation, readJson, HttpError } from "@backend/apiHelpers";
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  if (!rateLimit(`import:${patient.id}`, 30, 60_000)) throw new HttpError(429, "Too many uploads at once. Please wait a minute.");
+  if (!(await rateLimit(`import:${patient.id}`, 30, 60_000))) throw new HttpError(429, "Too many uploads at once. Please wait a minute.");
   const b = await readJson(req, 3_000_000);
   const { readings, rejected } = parseIngest({ readings: Array.isArray(b.readings) ? b.readings.slice(0, 5000) : [] }, patient.timezone);
   const good = readings.filter((r) => r.metric !== "bp" && r.metric !== "ecg");

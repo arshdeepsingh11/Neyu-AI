@@ -10,7 +10,7 @@ import { toResponse, HttpError } from "@backend/apiHelpers";
 export async function GET(req: Request) {
   try {
     const { ip } = await clientMeta();
-    if (!rateLimit(`pair-status:${ip}`, 40, 60_000)) throw new HttpError(429, "Too many requests.");
+    if (!(await rateLimit(`pair-status:${ip}`, 40, 60_000))) throw new HttpError(429, "Too many requests.");
     const code = (new URL(req.url).searchParams.get("code") || "").slice(0, 64);
     const row = code ? await prisma.devicePairing.findUnique({ where: { codeHash: sha256(code) } }) : null;
     if (!row?.usedAt || Date.now() - row.usedAt.getTime() > 2 * 3_600_000) throw new HttpError(404, "Not found.");

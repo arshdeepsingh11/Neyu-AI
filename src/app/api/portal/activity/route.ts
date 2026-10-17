@@ -6,7 +6,7 @@ import { rateLimit } from "@backend/rateLimit";
 import { withPatientMutation, readJson, str } from "@backend/apiHelpers";
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient }) => {
-  if (!rateLimit(`act:${patient.id}`, 30, 60_000)) return { ok: true };
+  if (!(await rateLimit(`act:${patient.id}`, 30, 60_000))) return { ok: true };
   const s = await prisma.patientSettings.findUnique({ where: { patientId: patient.id }, select: { learnUsage: true } });
   if (s && !s.learnUsage) return { ok: true, stored: 0 };
   const b = await readJson(req, 32_000);

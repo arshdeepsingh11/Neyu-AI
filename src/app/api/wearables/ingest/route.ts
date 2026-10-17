@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const token = (new URL(req.url).searchParams.get("k") || "").trim() || (auth.startsWith("Bearer ") ? auth.slice(7).trim() : "");
     if (!token.startsWith("anra_dev_") || token.length > 80) throw new HttpError(401, "Missing or invalid device token.");
     const { ip } = await clientMeta();
-    if (!rateLimit(`ingest:${sha256(token).slice(0, 16)}`, 60, 60_000)) throw new HttpError(429, "Too many requests.");
+    if (!(await rateLimit(`ingest:${sha256(token).slice(0, 16)}`, 60, 60_000))) throw new HttpError(429, "Too many requests.");
 
     const conn = await prisma.deviceConnection.findUnique({
       where: { tokenHash: sha256(token) },

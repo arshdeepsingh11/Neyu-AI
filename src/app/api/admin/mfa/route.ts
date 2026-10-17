@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   try {
     await assertSameOrigin();
     const { ip } = await clientMeta();
-    if (!rateLimit(`admin-mfa:${ip}`, 20, 15 * 60 * 1000)) throw new HttpError(429, "Too many attempts. Please wait 15 minutes.");
+    if (!(await rateLimit(`admin-mfa:${ip}`, 20, 15 * 60 * 1000))) throw new HttpError(429, "Too many attempts. Please wait 15 minutes.");
     const b = await readJson(req);
     const code = typeof b.code === "string" ? b.code.replace(/\s/g, "") : "";
     if (!/^\d{6}$/.test(code)) throw new HttpError(400, "Enter the 6-digit code from your authenticator app.");

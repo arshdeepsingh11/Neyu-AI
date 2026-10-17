@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   try {
     await assertSameOrigin();
     const { ip, userAgent } = await clientMeta();
-    if (!rateLimit(`admin-login:${ip}`, 10, 15 * 60 * 1000)) throw new HttpError(429, "Too many attempts. Please wait 15 minutes.");
+    if (!(await rateLimit(`admin-login:${ip}`, 10, 15 * 60 * 1000))) throw new HttpError(429, "Too many attempts. Please wait 15 minutes.");
     const b = await readJson(req);
     if (typeof b.identifier !== "string" || !b.identifier.trim()) throw new HttpError(400, "Enter your work email.");
     if (typeof b.password !== "string" || !b.password) throw new HttpError(400, "Enter your password.");

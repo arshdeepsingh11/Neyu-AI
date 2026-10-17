@@ -14,7 +14,7 @@ const EMERGENCY = "This could need urgent care. If you have chest pain, trouble 
 
 export async function POST(req: Request) {
   const { ip } = await clientMeta();
-  if (!rateLimit(`nea-match:${ip}`, 12, 60_000)) return NextResponse.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
+  if (!(await rateLimit(`nea-match:${ip}`, 12, 60_000))) return NextResponse.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   let concern = "";
   try { concern = String((await req.json())?.concern || "").trim().slice(0, 400); } catch { /* */ }
   if (concern.length < 3) return NextResponse.json({ error: "Tell us a little about your concern." }, { status: 400 });

@@ -163,7 +163,7 @@ async function gemini(system: string, message: string, history: { role: string; 
 }
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  if (!rateLimit(`alba:${patient.id}`, 20, 60_000)) throw new HttpError(429, "You're sending messages quickly. Please wait a moment.");
+  if (!(await rateLimit(`alba:${patient.id}`, 20, 60_000))) throw new HttpError(429, "You're sending messages quickly. Please wait a moment.");
   const b = await readJson(req);
   const message = str(b.message, 1000);
   if (!message) throw new HttpError(400, "Please type a question.");

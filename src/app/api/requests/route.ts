@@ -14,7 +14,7 @@ const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(
 
 export async function POST(req: NextRequest) {
   const { ip } = await clientMeta();
-  if (!rateLimit(`requests:${ip}`, 6, 60_000)) return NextResponse.json({ error: "Too many requests — please try again in a minute." }, { status: 429 });
+  if (!(await rateLimit(`requests:${ip}`, 6, 60_000))) return NextResponse.json({ error: "Too many requests — please try again in a minute." }, { status: 429 });
   let b: Record<string, unknown>;
   try { b = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }); }
   const service = clip(b.service, 40);

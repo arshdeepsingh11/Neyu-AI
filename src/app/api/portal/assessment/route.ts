@@ -13,7 +13,7 @@ export const GET = (req: Request) => withPatient(async ({ patient, ip }) => {
   const days = DAYS.includes(q) ? q : 90;
   const [a, space] = await Promise.all([getAssessment(patient, days), getSpace(patient)]);
   let observations: string[] = [], questions: string[] = [], summary = "", byAi = false;
-  if (rateLimit(`assess:${patient.id}`, 10, 10 * 60_000)) {
+  if ((await rateLimit(`assess:${patient.id}`, 10, 10 * 60_000))) {
     const brief = JSON.stringify({ activity: a.activity, labs: a.labs, reports: a.reports.map((r) => `${r.date} ${r.title}: ${r.summary} ${r.flagged.join("; ")}`), eating: a.eating, physical: a.physical, checkins: a.checkins, profileChanges: a.profileChanges, newInfo: a.newInfo, changes: a.changes.map((c) => `${c.text} (${c.basis})`), conditions: a.conditions, medications: a.medications, familyHistory: a.familyHistory, nutrition: a.nutrition, lifestyle: a.lifestyle, goals: a.goals, gaps: space.gaps.map((g) => g.text) });
     const r = await geminiJSON<{ observations?: string[]; questions?: string[]; summary?: string }>(
       `You help a patient prepare a summary for their family doctor. From the JSON data only, write:

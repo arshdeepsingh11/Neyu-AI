@@ -11,7 +11,7 @@ import { withPatient, withPatientMutation, readJson, str, HttpError } from "@bac
 export const GET = () => withPatient(async ({ patient }) => getFamily(patient));
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  if (!rateLimit(`care:${patient.id}`, 10, 3600_000)) throw new HttpError(429, "Too many invites. Try again later.");
+  if (!(await rateLimit(`care:${patient.id}`, 10, 3600_000))) throw new HttpError(429, "Too many invites. Try again later.");
   const b = await readJson(req);
   const r = await inviteCaregiver(patient, str(b.email, 120), str(b.relation, 30), baseUrl(req));
   audit(patient.id, "patient", "create", "care-invite", ip);

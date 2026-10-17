@@ -6,7 +6,7 @@ import { audit } from "@backend/audit";
 import { withPatientMutation, readJson, HttpError } from "@backend/apiHelpers";
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  if (!rateLimit(`pw:${patient.id}`, 5, 15 * 60 * 1000)) throw new HttpError(429, "Too many attempts. Please try again later.");
+  if (!(await rateLimit(`pw:${patient.id}`, 5, 15 * 60 * 1000))) throw new HttpError(429, "Too many attempts. Please try again later.");
   const b = await readJson(req);
   const current = typeof b.current === "string" ? b.current : "", next = typeof b.next === "string" ? b.next : "";
   const row = await prisma.patient.findUniqueOrThrow({ where: { id: patient.id }, select: { passwordHash: true } });

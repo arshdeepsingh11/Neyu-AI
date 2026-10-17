@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const sessionId = await getOrCreateSessionId();
-    if (!rateLimit(`visit:${sessionId}`, 120, 60 * 1000)) return NextResponse.json({ ok: false });
+    if (!(await rateLimit(`visit:${sessionId}`, 120, 60 * 1000))) return NextResponse.json({ ok: false });
     const userAgent = req.headers.get("user-agent") || undefined;
 
     if (isOutbound) {
