@@ -13,6 +13,7 @@ import { prisma } from "@backend/db";
 import { HttpError, sha256, verifyPassword, burnPasswordCheck } from "@backend/patientAuth";
 import { encrypt, decrypt } from "@backend/oauth";
 import { newTotpSecret, verifyTotp, otpauthUri } from "@backend/totp";
+import { kv } from "@backend/kv";
 
 export const STAFF_COOKIE = "neyu_staff";
 export const STAFF_SESSION_HOURS = 8; // one shift; the console also locks after 15 min idle
@@ -44,9 +45,10 @@ const cookieOpts = (maxAgeSec: number) => ({
 
 export const normalizeStaffEmail = (e: unknown) => (typeof e === "string" ? e.trim().toLowerCase().slice(0, 254) : "");
 
-// Kept in memory per server (moves to Redis in Phase 3 part 6).
-const lastStep = new Map<string, number>(); // staffId → last accepted 30-s step (stops a code being used twice)
-const codeTries = new Map<string, number>(); // sessionId → wrong codes
+// Shared store (Redis, or memory on a laptop): last accepted 30-s step per staff
+// member (a code works once) and wrong codes per pending sign-in.
+const STEP_KEY = (staffId: string) => `totp:last:${staffId}`;
+const TRIES_KEY = (sessionId: string) => `totp:tries:${sessionId}`;
 
 // ── Step 1: password ────────────────────────────────────────────────────────
 export interface PasswordResult {
@@ -85,7 +87,7 @@ export async function startStaffLogin(email: string, password: string, meta: { i
   // First sign-in: new secret, kept encrypted until the first correct code turns it on.
   const secret = newTotpSecret();
   await prisma.staffUser.update({ where: { id: s.id }, data: { mfaSecretEnc: encrypt(secret) } });
-  lastStep.delete(s.id); // new secret → earlier codes don't matter
+  await kv.del(STEP_KEY(s.id)); // new secret → earlier codes don't matter
   return { ok: true, step: "setup", staffId: s.id, email, secret, otpauth: otpauthUri(email, secret) };
 }
 
@@ -101,20 +103,20 @@ export async function finishStaffLogin(code: string): Promise<CodeResult> {
 
   let secret = "";
   try { secret = decrypt(s.mfaSecretEnc); } catch { return { ok: false, reason: "no_session" }; }
-  const step = verifyTotp(secret, code, lastStep.get(s.id) ?? -1);
+  const last = await kv.get(STEP_KEY(s.id));
+  const step = verifyTotp(secret, code, last ? Number(last) : -1);
   if (step === null) {
-    const n = (codeTries.get(sess.id) || 0) + 1;
-    codeTries.set(sess.id, n);
+    const n = await kv.incr(TRIES_KEY(sess.id), PENDING_MINUTES * 60);
     if (n >= MAX_FAILED) {
-      codeTries.delete(sess.id);
+      await kv.del(TRIES_KEY(sess.id));
       await prisma.staffSession.delete({ where: { id: sess.id } }).catch(() => {});
       (await cookies()).delete(STAFF_COOKIE);
       return { ok: false, reason: "too_many", staffId: s.id, email: s.email };
     }
     return { ok: false, reason: "bad_code", staffId: s.id, email: s.email };
   }
-  lastStep.set(s.id, step);
-  codeTries.delete(sess.id);
+  await kv.set(STEP_KEY(s.id), String(step), 120);
+  await kv.del(TRIES_KEY(sess.id));
 
   const firstSetup = !s.mfaEnabledAt;
   const expiresAt = new Date(Date.now() + STAFF_SESSION_HOURS * 3600_000);
