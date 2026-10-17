@@ -1,5 +1,6 @@
 // Doctor Assessment PDF: a clean, printable patient health summary (DM Sans)
 // followed by the ORIGINAL reports the patient chose, attached unchanged.
+import { docBytes } from "@backend/storage";
 import { readFileSync } from "fs";
 import path from "path";
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib";
@@ -176,7 +177,7 @@ export async function buildAssessmentPdf(patientId: string, a: Assessment, o: Pd
 
   if (o.countOnly) return new Uint8Array([pages.length]);
   // ── Original reports, attached unchanged ──────────────────────────────
-  const docs = o.docIds.length ? await prisma.healthDocument.findMany({ where: { patientId, id: { in: o.docIds.slice(0, 20) } }, select: { id: true, title: true, provider: true, docDate: true, createdAt: true, mime: true, data: true } }) : [];
+  const docs = o.docIds.length ? await prisma.healthDocument.findMany({ where: { patientId, id: { in: o.docIds.slice(0, 20) } }, select: { id: true, title: true, provider: true, docDate: true, createdAt: true, mime: true, data: true, storageKey: true } }) : [];
   for (const d of docs) {
     const sep = pdf.addPage([W, H]);
     sep.drawRectangle({ x: 0, y: 0, width: W, height: H, color: WASH });
@@ -185,11 +186,12 @@ export async function buildAssessmentPdf(patientId: string, a: Assessment, o: Pd
     sep.drawText(T(`${d.provider || "Added by the patient"} · ${(d.docDate || d.createdAt).toISOString().slice(0, 10)}`), { x: M, y: H / 2 - 14, size: 11, font: reg, color: INK2 });
     sep.drawText(T("The following pages are the original document as received or scanned. Nothing has been altered."), { x: M, y: H / 2 - 40, size: 9.5, font: reg, color: MUTED });
     try {
+      const bytes = await docBytes(d);
       if (d.mime === "application/pdf") {
-        const src = await PDFDocument.load(d.data, { ignoreEncryption: true });
+        const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
         (await pdf.copyPages(src, src.getPageIndices())).forEach((pg) => pdf.addPage(pg));
       } else if (/image\/(jpeg|png)/.test(d.mime)) {
-        const img = d.mime === "image/png" ? await pdf.embedPng(d.data) : await pdf.embedJpg(d.data);
+        const img = d.mime === "image/png" ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
         const pg = pdf.addPage([W, H]); const s = Math.min((W - 48) / img.width, (H - 48) / img.height);
         pg.drawImage(img, { x: (W - img.width * s) / 2, y: (H - img.height * s) / 2, width: img.width * s, height: img.height * s });
       } else sep.drawText(T("This file type can't be embedded. Open it in My Health Space."), { x: M, y: H / 2 - 60, size: 9.5, font: reg, color: AMBER });

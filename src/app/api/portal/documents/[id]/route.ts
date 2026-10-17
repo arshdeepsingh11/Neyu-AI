@@ -1,6 +1,7 @@
 // GET    /api/portal/documents/{id} — one report (Neyu's reading, no bytes)
 // PATCH  /api/portal/documents/{id} — confirm / correct { title, kind, provider, date, values, confirm }
 // DELETE /api/portal/documents/{id} — remove the report and values it added
+import { storage } from "@backend/storage";
 import { prisma } from "@backend/db";
 import { audit } from "@backend/audit";
 import { award } from "@backend/health";
@@ -42,7 +43,8 @@ export const PATCH = (req: Request, { params }: Ctx) => withPatientMutation(asyn
 export const DELETE = (_r: Request, { params }: Ctx) => withPatientMutation(async ({ patient, ip }) => {
   const d = await own(patient.id, (await params).id);
   await prisma.labResult.deleteMany({ where: { patientId: patient.id, documentId: d.id } });
-  await prisma.healthDocument.delete({ where: { id: d.id } });
+  const gone = await prisma.healthDocument.delete({ where: { id: d.id }, select: { storageKey: true } });
+  if (gone.storageKey) await storage.del(gone.storageKey).catch((e) => console.error("file delete failed:", e?.message));
   audit(patient.id, "patient", "delete", `document:${d.id}`, ip);
   return { ok: true };
 });

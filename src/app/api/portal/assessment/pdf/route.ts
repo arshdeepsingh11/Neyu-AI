@@ -1,5 +1,6 @@
 // POST /api/portal/assessment/pdf — { days, sections[], docIds[], observations[], questions[] }
 // Returns the Doctor Assessment PDF (summary + chosen original reports).
+import { docBytes } from "@backend/storage";
 import { getAssessment } from "@backend/space";
 import { buildAssessmentPdf } from "@backend/assessmentPdf";
 import { prisma } from "@backend/db";
@@ -12,7 +13,7 @@ export const maxDuration = 60;
 const DAYS = [30, 90, 180, 365, 3650];
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  if (!rateLimit(`assesspdf:${patient.id}`, 40, 10 * 60_000)) throw new HttpError(429, "Please wait a few minutes before creating another PDF.");
+  if (!(await rateLimit(`assesspdf:${patient.id}`, 40, 10 * 60_000))) throw new HttpError(429, "Please wait a few minutes before creating another PDF.");
   const b = await readJson(req, 64_000);
   const days = DAYS.includes(Number(b.days)) ? Number(b.days) : 90;
   const arr = (v: unknown, n: number, len: number) => (Array.isArray(v) ? v.slice(0, n).map((s) => str(s, len)).filter(Boolean) : []);
@@ -25,7 +26,7 @@ export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }
     const reports: { id: string; pages: number }[] = [];
     for (const d of docs) {
       let n = d.pages;
-      if (!n) { const full = await prisma.healthDocument.findUnique({ where: { id: d.id }, select: { data: true } }); n = await countPages(Buffer.from(full!.data), d.mime); await prisma.healthDocument.update({ where: { id: d.id }, data: { pages: n } }); }
+      if (!n) { const full = await prisma.healthDocument.findUnique({ where: { id: d.id }, select: { data: true, storageKey: true } }); n = await countPages(await docBytes(full!), d.mime); await prisma.healthDocument.update({ where: { id: d.id }, data: { pages: n } }); }
       reports.push({ id: d.id, pages: n + 1 }); // +1 cover page before each original
     }
     return { summaryPages, reports };
