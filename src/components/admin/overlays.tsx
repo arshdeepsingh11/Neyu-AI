@@ -356,3 +356,73 @@ export function Toasts({ toasts, onClose }: { toasts: ToastT[]; onClose: (id: st
   );
 }
 
+
+// ── Break-glass reason (Phase 3) ─────────────────────────────────────────
+const REASONS = ["Patient asked for help", "Preparing or sending a report", "Reviewing results for care", "Appointment or referral follow-up", "Account or privacy request", "Other"];
+export function ReasonDialog({ label, onDone }: { label: string; onDone: (reason: string | null) => void }) {
+  const [pick, setPick] = useState("");
+  const [other, setOther] = useState("");
+  const [err, setErr] = useState("");
+  const go = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pick) return setErr("Choose a reason.");
+    const r = pick === "Other" ? other.trim() : pick;
+    if (r.length < 5) return setErr("Describe the reason (at least 5 characters).");
+    onDone(r);
+  };
+  return (
+    <Scrim z={80} dim={0.3}>
+      <form onSubmit={go} role="dialog" aria-modal="true" aria-labelledby="rs-title" data-testid="reason-dialog" style={{ ...dialog, maxWidth: 460, gap: 14 }}>
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: T.peach, color: T.peachInk, display: "grid", placeItems: "center", fontSize: 21 }}><i className="ph ph-shield-warning" /></span>
+        <div><h2 id="rs-title" style={{ margin: 0, fontSize: 19, fontWeight: 500 }}>Why do you need {label}?</h2><p style={{ margin: "6px 0 0", fontSize: 14, color: T.ink2, lineHeight: 1.5 }}>Your role opens this only with a reason. It is saved in the audit log with your name, and access stays open for 60 minutes.</p></div>
+        <div role="radiogroup" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {REASONS.map((r) => (
+            <label key={r} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 12px", borderRadius: 12, border: `1px solid ${pick === r ? T.teal : T.line3}`, background: pick === r ? T.wash : T.card, cursor: "pointer", fontSize: 14.5 }}>
+              <input type="radio" name="reason" checked={pick === r} onChange={() => { setPick(r); setErr(""); }} />{r}
+            </label>
+          ))}
+          {pick === "Other" && <input autoFocus value={other} onChange={(e) => { setOther(e.target.value); setErr(""); }} placeholder="Describe the reason" aria-label="Other reason" className="f-teal" style={input} />}
+        </div>
+        {err && <div role="alert" style={{ fontSize: 13.5, color: T.peachInk }}>{err}</div>}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button type="button" onClick={() => onDone(null)} className="h-sand" style={btn2}>Cancel</button>
+          <button type="submit" className="h-primary" style={btnP}>Continue</button>
+        </div>
+      </form>
+    </Scrim>
+  );
+}
+
+// ── Change my password ───────────────────────────────────────────────────
+export function PasswordDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [cur, setCur] = useState(""), [next, setNext] = useState(""), [again, setAgain] = useState("");
+  const [err, setErr] = useState(""), [busy, setBusy] = useState(false);
+  const go = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (next.length < 12) return setErr("Use at least 12 characters.");
+    if (next !== again) return setErr("The new passwords don't match.");
+    setBusy(true);
+    try { await postAction({ action: "me.password", current: cur, next }); onSaved(); onClose(); }
+    catch (x: any) { setErr(x.message); } finally { setBusy(false); }
+  };
+  const field = (label: string, v: string, set: (s: string) => void, ac: string) => (
+    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}><span style={{ fontSize: 13, fontWeight: 500, color: T.ink2 }}>{label}</span>
+      <input type="password" autoComplete={ac} value={v} onChange={(e) => { set(e.target.value); setErr(""); }} className="f-teal" style={input} /></label>
+  );
+  return (
+    <Scrim z={70}>
+      <form onSubmit={go} role="dialog" aria-modal="true" aria-labelledby="pw-title" style={{ ...dialog, maxWidth: 420, gap: 14 }}>
+        <h2 id="pw-title" style={{ margin: 0, fontSize: 19, fontWeight: 500 }}>Change your password</h2>
+        {field("Current password", cur, setCur, "current-password")}
+        {field("New password (12+ characters)", next, setNext, "new-password")}
+        {field("New password again", again, setAgain, "new-password")}
+        {err && <div role="alert" style={{ fontSize: 13.5, color: T.peachInk }}>{err}</div>}
+        <p style={{ margin: 0, fontSize: 13, color: T.faint }}>Your other devices are signed out. This one stays signed in.</p>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button type="button" onClick={onClose} className="h-sand" style={btn2}>Cancel</button>
+          <button type="submit" disabled={busy} className="h-primary" style={btnP}>{busy ? "Saving…" : "Save"}</button>
+        </div>
+      </form>
+    </Scrim>
+  );
+}
