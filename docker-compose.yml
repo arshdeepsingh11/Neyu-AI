@@ -2,7 +2,7 @@
 # Start:  docker compose up -d        Stop:  docker compose down
 # Data is kept in Docker volumes between restarts. Wipe everything: docker compose down -v
 #
-#   PostgreSQL  localhost:5432   user neyu / password neyu_local / database neyu
+#   PostgreSQL  localhost:5433   user neyu / password neyu_local / database neyu
 #   Redis       localhost:6379   (cache + job queues, used from Phase 3)
 #   MinIO       (off for now)    S3 file storage — the minio/minio image was removed from Docker Hub;
 #                                a replacement is chosen in Phase 3. Start it later with: docker compose --profile files up -d
