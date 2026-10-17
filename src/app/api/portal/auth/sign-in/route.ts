@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const email = normalizeEmail(str(b.email, 254));
     const password = typeof b.password === "string" ? b.password.slice(0, 200) : "";
     if (!email || !password) throw new HttpError(400, "Please enter your email and password.");
-    if (!rateLimit(`signin-ip:${ip}`, 30, 15 * 60 * 1000) || !rateLimit(`signin-email:${email}`, 10, 15 * 60 * 1000)) {
+    if (!(await rateLimit(`signin-ip:${ip}`, 30, 15 * 60 * 1000)) || !(await rateLimit(`signin-email:${email}`, 10, 15 * 60 * 1000))) {
       throw new HttpError(429, "Too many attempts. Please wait a few minutes and try again.");
     }
 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       await recordFailedLogin(p.id, p.failedLogins);
       throw new HttpError(401, WRONG);
     }
-    if (p.accountStatus !== "active") throw new HttpError(403, "This account isn't active. Please contact the clinic.");
+    if (p.accountStatus !== "active" && p.accountStatus !== "deletion_requested") throw new HttpError(403, "This account isn't active. Please contact the clinic.");
     await prisma.patient.update({ where: { id: p.id }, data: { failedLogins: 0, lockedUntil: null, lastLoginAt: new Date() } });
     await createSession(p.id);
     audit(p.id, "patient", "login", "session", ip);

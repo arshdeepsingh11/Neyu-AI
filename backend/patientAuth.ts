@@ -125,7 +125,8 @@ export async function getCurrentPatient(): Promise<CurrentPatient | null> {
   }
   const { emailVerifiedAt, accountStatus, ...p } = session.patient;
   // Deactivated / deletion-requested accounts are signed out everywhere.
-  if (accountStatus !== "active") return null;
+  // During the 30-day deletion hold the patient can still sign in (to download data or cancel).
+  if (accountStatus !== "active" && accountStatus !== "deletion_requested") return null;
   return { ...p, emailVerified: !!emailVerifiedAt };
 }
 

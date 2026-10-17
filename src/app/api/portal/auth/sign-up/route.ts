@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     await assertSameOrigin();
     if (process.env.PORTAL_SIGNUP_OPEN === "false") throw new HttpError(403, "New accounts aren't open yet. Please contact the clinic.");
     const { ip } = await clientMeta();
-    if (!rateLimit(`signup:${ip}`, 10, 60 * 60 * 1000)) throw new HttpError(429, "Too many attempts. Please try again later.");
+    if (!(await rateLimit(`signup:${ip}`, 10, 60 * 60 * 1000))) throw new HttpError(429, "Too many attempts. Please try again later.");
 
     const b = await readJson(req);
     const firstName = str(b.firstName, 60), lastName = str(b.lastName, 60), email = normalizeEmail(str(b.email, 254));
@@ -42,9 +42,16 @@ export async function POST(req: Request) {
       data: {
         email, firstName, lastName, dateOfBirth, timezone, passwordHash: await hashPassword(password), termsAcceptedAt: new Date(),
         settings: { create: {} },
+        emailPreference: { create: { news: b.news === true } },
       },
       select: { id: true },
     });
+    // Consent record (legal proof of what was agreed, which version, when, from where).
+    const { recordConsent } = await import("@backend/privacy");
+    const meta = { ip, userAgent: req.headers.get("user-agent") || undefined };
+    await recordConsent(patient.id, "terms", true, "signup", meta);
+    await recordConsent(patient.id, "privacy", true, "signup", meta);
+    if (b.news === true) await recordConsent(patient.id, "marketing", true, "signup", meta);
     await createSession(patient.id);
     audit(patient.id, "patient", "create", "account", ip);
     // Anything this browser did anonymously (Neyu, symptom checks…) joins the new record.

@@ -366,12 +366,15 @@ export async function runAction(b: any, c: Ctx): Promise<Result> {
     case "account.delete": {
       const p = await patientOr404(b.patientId);
       if (str(b.confirm, 10) !== "DELETE") throw new HttpError(400, "Type DELETE to confirm.");
+      // Same 30-day hold as a patient's own request; cancel any time in Settings → Privacy requests.
+      const { requestDeletion } = await import("@backend/privacy");
+      const full = await prisma.patient.findUnique({ where: { id: p.id }, select: { id: true, email: true, firstName: true } });
+      const r = await requestDeletion(full!, "", str(b.reason, 300) || "Requested through the clinic", "staff", { ip: c.ip });
       await prisma.$transaction([
-        prisma.patient.update({ where: { id: p.id }, data: { accountStatus: "deletion_requested" } }),
         prisma.patientSession.deleteMany({ where: { patientId: p.id } }),
         prisma.deviceConnection.updateMany({ where: { patientId: p.id }, data: { status: "disconnected", tokenHash: null } }),
       ]);
-      await log({ kind: "Account", action: "Requested account deletion", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p), before: p.accountStatus, after: "Deletion requested" });
+      await log({ kind: "Account", action: "Requested account deletion (30-day hold)", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p), before: p.accountStatus, after: "Deletes " + r.scheduledFor.toISOString().slice(0, 10) });
       return { ok: true };
     }
 
