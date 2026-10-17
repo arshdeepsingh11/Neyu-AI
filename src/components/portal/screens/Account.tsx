@@ -255,6 +255,115 @@ const FAQ: [string, string][] = [
   ["Disconnecting services", "Disconnecting stops new data. You can also delete previously imported wearable data from here."],
 ];
 
+// ── Privacy centre (consents, delete account, full export) ──────────────
+type PrivacyDTO = {
+  consents: { kind: string; granted: boolean; at: string | null; version: string | null; url: string | null; summary: string }[];
+  history: { kind: string; granted: boolean; method: string; at: string; version: string | null }[];
+  email: { reminders: boolean; news: boolean; unsubscribed: boolean };
+  deletion: { id: string; requestedAt: string; scheduledFor: string } | null;
+  exports: { id: string; status: string; createdAt: string; expiresAt: string | null }[];
+};
+const PRIV = "/api/portal/privacy";
+const CONSENT_LABEL: Record<string, string> = { terms: "Terms of use", privacy: "Privacy policy", ai: "Neyu AI reads my data when I ask", marketing: "News and offers by email" };
+const shortDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" }) : "—");
+
+function PrivacyCentre() {
+  const { toast } = usePortal();
+  const { data } = useResource<PrivacyDTO>(PRIV);
+  const [busy, setBusy] = useState(false);
+  const [del, setDel] = useState(false), [pw, setPw] = useState(""), [why, setWhy] = useState(""), [err, setErr] = useState("");
+  const post = async (body: Record<string, unknown>, ok: string) => {
+    setBusy(true); setErr("");
+    try { const r = await api<PrivacyDTO>(PRIV, { method: "POST", body }); prime(PRIV, r); toast(ok); return true; }
+    catch (e: any) { setErr(e.message); toast(e.message); return false; } finally { setBusy(false); }
+  };
+  if (!data) return null;
+  const pending = data.exports.find((e) => e.status === "pending");
+  const ready = data.exports.find((e) => e.status === "ready");
+  const daysLeft = data.deletion ? Math.max(0, Math.ceil((new Date(data.deletion.scheduledFor).getTime() - Date.now()) / 86400_000)) : 0;
+  const row: React.CSSProperties = { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14, minHeight: 60, padding: "10px 16px", borderTop: `1px solid ${C.line}` };
+  return (
+    <>
+      {data.deletion && (
+        <section role="alert" data-testid="deletion-banner" style={{ marginTop: 28, padding: 18, borderRadius: 18, background: "#FBEEE8", color: C.peachInk, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+          <NIcon name="ph-hourglass" size={22} tone={C.peachInk} />
+          <span style={{ flex: 1, minWidth: 220 }}><b>Your account will be deleted on {shortDate(data.deletion.scheduledFor)}</b> ({daysLeft} days). Everything is removed permanently after that.</span>
+          <button disabled={busy} onClick={() => post({ action: "delete.cancel" }, "Deletion cancelled — your account stays")} style={{ height: 40, padding: "0 16px", borderRadius: 12, border: "none", background: C.teal, color: C.card, fontSize: 14.5, cursor: "pointer" }}>Keep my account</button>
+        </section>
+      )}
+
+      <h2 style={{ margin: "32px 0 10px", fontSize: 17, fontWeight: 500 }}>What you agreed to</h2>
+      <section style={{ borderRadius: 18, background: C.card, overflow: "hidden" }} data-testid="consents">
+        {data.consents.map((c, i) => (
+          <div key={c.kind} style={{ ...row, borderTop: i ? row.borderTop : "none" }}>
+            <NIcon name={c.granted ? "ph-check-circle" : "ph-circle"} size={20} tone={c.granted ? C.teal : C.muted} />
+            <span style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ fontSize: 15 }}>{CONSENT_LABEL[c.kind] || c.kind}</span>
+              <span style={{ fontSize: 13, color: C.muted }}>{c.granted ? "Yes" : "No"}{c.at ? ` · ${shortDate(c.at)}` : ""}{c.version ? ` · version ${c.version}` : ""}</span>
+            </span>
+            {c.url && <a href={c.url} style={{ fontSize: 13.5, color: C.teal }}>Read</a>}
+          </div>
+        ))}
+      </section>
+      <p style={{ margin: "8px 4px 0", fontSize: 13, color: C.muted }}>Neyu AI is changed with the “Neyu access” switch above; news emails in Notifications. Every change is recorded with the date and policy version.</p>
+
+      <h2 style={{ margin: "32px 0 10px", fontSize: 17, fontWeight: 500 }}>Full copy of your data</h2>
+      <section style={{ borderRadius: 18, background: C.card, overflow: "hidden" }}>
+        <div style={{ ...row, borderTop: "none" }}>
+          <NIcon name="ph-download-simple" size={20} tone={C.teal} />
+          <span style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ fontSize: 15 }}>Everything, including your original reports (.zip)</span>
+            <span style={{ fontSize: 13, color: C.muted }}>{pending ? "Preparing… we'll email you when it's ready" : ready ? `Ready · available until ${shortDate(ready.expiresAt)}` : "Prepared in the background, kept 7 days"}</span>
+          </span>
+          {ready ? <a href={`${PRIV}/export/${ready.id}`} data-testid="export-download" style={{ height: 38, padding: "0 14px", borderRadius: 10, background: C.teal, color: C.card, fontSize: 14, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>Download</a>
+            : <button disabled={busy || !!pending} onClick={() => post({ action: "export.request" }, "Preparing your export")} style={{ height: 38, padding: "0 14px", border: `1px solid ${C.line12}`, borderRadius: 10, background: "none", color: C.teal, fontSize: 14, cursor: "pointer" }}>{pending ? "Preparing…" : "Prepare"}</button>}
+          {ready && <button disabled={busy} onClick={() => post({ action: "export.request" }, "Preparing a new export")} style={{ height: 38, padding: "0 12px", border: "none", background: "none", color: C.teal, fontSize: 14, cursor: "pointer" }}>New</button>}
+        </div>
+      </section>
+
+      {!data.deletion && (
+        <>
+          <h2 style={{ margin: "32px 0 10px", fontSize: 17, fontWeight: 500 }}>Delete your account</h2>
+          <section style={{ borderRadius: 18, background: C.card, padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.55, color: C.ink2 }}>Deletes your account and everything in My Health Space after a 30-day waiting period. You can cancel any time before then. Download a copy first if you want to keep your data.</p>
+            {!del ? <button onClick={() => setDel(true)} style={{ alignSelf: "flex-start", height: 40, padding: "0 14px", border: "1px solid rgba(139,75,55,.25)", borderRadius: 10, background: "none", color: C.peachInk, fontSize: 14, cursor: "pointer" }}>Delete my account…</button> : (
+              <form onSubmit={async (e) => { e.preventDefault(); if (await post({ action: "delete.request", password: pw, reason: why }, "Deletion scheduled in 30 days")) { setDel(false); setPw(""); } }} style={{ display: "flex", flexDirection: "column", gap: 10 }} data-testid="delete-form">
+                <input type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Your password" aria-label="Your password" style={{ height: 44, borderRadius: 12, border: `1px solid ${C.line12}`, padding: "0 12px", fontSize: 15 }} />
+                <input value={why} onChange={(e) => setWhy(e.target.value)} placeholder="Why are you leaving? (optional)" aria-label="Reason" style={{ height: 44, borderRadius: 12, border: `1px solid ${C.line12}`, padding: "0 12px", fontSize: 15 }} />
+                {err && <div role="alert" style={{ fontSize: 13.5, color: C.peachInk }}>{err}</div>}
+                <span style={{ display: "flex", gap: 8 }}>
+                  <button type="button" onClick={() => setDel(false)} style={{ height: 40, padding: "0 12px", border: "none", background: "none", color: C.teal, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+                  <button type="submit" disabled={busy || !pw} style={{ height: 40, padding: "0 16px", border: "none", borderRadius: 10, background: C.peachInk, color: C.card, fontSize: 14, cursor: "pointer", opacity: pw ? 1 : 0.6 }}>Schedule deletion</button>
+                </span>
+              </form>
+            )}
+          </section>
+        </>
+      )}
+    </>
+  );
+}
+
+function EmailPrefs() {
+  const { toast } = usePortal();
+  const { data } = useResource<PrivacyDTO>(PRIV);
+  if (!data) return null;
+  const set = (k: "reminders" | "news") => async () => {
+    try { const r = await api<PrivacyDTO>(PRIV, { method: "POST", body: { action: "email", [k]: !data.email[k] } }); prime(PRIV, r); }
+    catch (e: any) { toast(e.message); }
+  };
+  return (
+    <div style={{ marginTop: 28 }} data-testid="email-prefs">
+      <h2 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 500 }}>Email</h2>
+      <ToggleList items={[
+        { label: "Reminders", sub: "Visit nudges, retest reminders, daily brief", on: data.email.reminders, toggle: set("reminders") },
+        { label: "News from NEYU", sub: "New services and health programs — a few times a year", on: data.email.news, toggle: set("news") },
+      ]} />
+      <p style={{ margin: "8px 4px 0", fontSize: 13, color: C.muted }}>Sign-in codes and account notices always arrive — they keep your account safe. Every email has an unsubscribe link.</p>
+    </div>
+  );
+}
+
 export function Privacy() {
   const { settings, toast } = usePortal();
   const toggle = useSettingToggle();
@@ -306,6 +415,7 @@ export function Privacy() {
           ) : <button onClick={() => setConfirmDel(true)} style={{ height: 38, padding: "0 14px", border: "1px solid rgba(139,75,55,.25)", borderRadius: 10, background: "none", color: C.peachInk, fontSize: 14, cursor: "pointer" }}>Delete…</button>}
         </div>
       </section>
+      <PrivacyCentre />
     </div>
   );
 }
@@ -323,6 +433,7 @@ export function Notifications() {
         { label: "Protocol reminders", sub: "At the times in your routine", on: settings.notifProtocol, toggle: toggle("notifProtocol") },
         { label: "Appointment reminders", sub: "The day before and morning of", on: settings.notifAppt, toggle: toggle("notifAppt") },
       ]} />
+      <EmailPrefs />
     </div>
   );
 }
