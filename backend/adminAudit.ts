@@ -14,7 +14,7 @@ export interface AdminEvent {
   kind: AdminEventKind;
   action: string; // "Added lab result"
   resource: string; // "Lab · LDL cholesterol"
-  subjectType?: "patient" | "visitor" | "referral" | "request";
+  subjectType?: "patient" | "visitor" | "referral" | "request" | "staff";
   subjectId?: string | null;
   subject?: string | null; // display label
   reason?: string;
@@ -71,7 +71,7 @@ export async function adminLog(e: AdminEvent) {
         meta: { kind: e.kind, action: e.action, subjectType: e.subjectType ?? null, subject: cut(e.subject, 120), role: e.role ?? null },
       },
     });
-    if (e.subjectType === "patient" && e.subjectId) audit(e.subjectId, "admin", MIRROR[e.kind], `${e.action}: ${e.resource}`, e.ip);
+    if (e.subjectType === "patient" && e.subjectId) await audit(e.subjectId, "admin", MIRROR[e.kind], `${e.action}: ${e.resource}`, e.ip);
   } catch (err: any) {
     // An audit failure must be visible in the server log, never silent.
     console.error("Admin audit write failed:", err?.message);
