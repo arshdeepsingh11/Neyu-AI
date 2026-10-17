@@ -42,3 +42,6 @@ node_modules/
 prisma/*.db
 prisma/*.db-journal
 COMMANDS.txt
+
+# Local file storage (patient reports, exports) — never commit
+/storage/
