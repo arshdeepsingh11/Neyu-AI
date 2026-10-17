@@ -736,7 +736,9 @@ model HealthDocument {
   fileName  String
   size      Int
   pages     Int             @default(0) // page count of the original (0 = not counted yet)
-  data      Bytes
+  data       Bytes? // old rows only — new files live in file storage (storageKey)
+  storageKey String? // key in file storage (backend/storage.ts): local disk now, S3 later
+  sha256     String? // file fingerprint — finds duplicates without reading the file
   extracted String          @default("{}") // JSON { values:[{name,value,unit,ref,flag}], keyPoints:[] } — Neyu's reading
   summary   String? // Neyu's plain-language explanation (AI)
   status    String          @default("review") // review | saved | failed
@@ -746,6 +748,7 @@ model HealthDocument {
 
   @@index([patientId, docDate])
   @@index([patientId, createdAt])
+  @@index([patientId, sha256])
 }
 
 model FoodLog {
@@ -1032,8 +1035,8 @@ model EmailPreference {
 // "Delete my account": 30-day hold, then a worker erases everything for the patient.
 model DeletionRequest {
   id           String    @id @default(cuid())
-  patientId    String
-  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId    String? // emptied when the account is deleted — the request stays as the deletion certificate
+  patient      Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
   status       String    @default("pending") // pending | cancelled | running | completed | failed
   reason       String?
   requestedBy  String    @default("patient") // patient | guardian | staff
