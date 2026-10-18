@@ -4,6 +4,7 @@
 // which the API calls after logging a reason (privacy by design, HIA).
 
 import { prisma } from "@backend/db";
+import { cached } from "@backend/kv";
 import { parseJSON } from "@backend/patientData";
 import { emailConfigured } from "@backend/email";
 import { METRIC_DEFS, isMetricKey } from "@/lib/portal/metrics";
@@ -76,16 +77,36 @@ async function visitorIdsFor(sessionIds: string[]) {
 // ── Work queue ───────────────────────────────────────────────────────────
 const PRIO: Record<string, number> = { Emergency: 0, High: 1, Normal: 2, Low: 3 };
 
+// Queue rules shared by the list and the badge counts. Unverified sign-ups older than
+// 30 days drop off the queue (stale; the list would otherwise grow without end).
+const UNVERIFIED = (now: number) => ({ emailVerifiedAt: null, accountStatus: "active", createdAt: { lte: new Date(now - 48 * H), gte: new Date(now - 30 * D) } });
+const STALE_DEVICE = (now: number) => ({ status: "connected", OR: [{ lastSyncAt: null }, { lastSyncAt: { lt: new Date(now - 48 * H) } }] });
+
+/** Badge numbers without loading the rows (boot runs on every page load of the console). */
+export async function queueCounts() {
+  const now = Date.now();
+  const [emergency, refs, resched, labs, prep, unverified, devices] = await Promise.all([
+    prisma.symptomCheckLog.count({ where: { emergency: true, reviewedAt: null } }).then((n) => Math.min(n, 50)),
+    prisma.referralSubmission.count({ where: { status: "received" } }).then((n) => Math.min(n, 200)),
+    prisma.appointment.count({ where: { rescheduleRequestedAt: { not: null }, status: "scheduled" } }).then((n) => Math.min(n, 200)),
+    prisma.labResult.count({ where: { status: "pending" } }).then((n) => Math.min(n, 200)),
+    prisma.appointment.count({ where: { prepSavedAt: { not: null }, prepReviewedAt: null, status: "scheduled", startsAt: { gte: new Date(now - 12 * H) } } }),
+    prisma.patient.count({ where: UNVERIFIED(now) }).then((n) => Math.min(n, 200)),
+    prisma.deviceConnection.count({ where: STALE_DEVICE(now) }).then((n) => Math.min(n, 200)),
+  ]);
+  return { total: emergency + refs + resched + labs + prep + unverified + devices, emergency };
+}
+
 export async function loadQueue(): Promise<QueueItem[]> {
   const now = Date.now();
   const [emerg, refs, resched, labs, prep, unverified, devices] = await Promise.all([
     prisma.symptomCheckLog.findMany({ where: { emergency: true, reviewedAt: null }, orderBy: { createdAt: "desc" }, take: 50, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
     prisma.referralSubmission.findMany({ where: { status: "received" }, orderBy: { createdAt: "desc" }, take: 200 }),
-    prisma.appointment.findMany({ where: { rescheduleRequestedAt: { not: null }, status: "scheduled" }, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
+    prisma.appointment.findMany({ where: { rescheduleRequestedAt: { not: null }, status: "scheduled" }, take: 200, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
     prisma.labResult.findMany({ where: { status: "pending" }, include: { patient: { select: { id: true, firstName: true, lastName: true } } }, take: 200 }),
     prisma.appointment.findMany({ where: { prepSavedAt: { not: null }, prepReviewedAt: null, status: "scheduled", startsAt: { gte: new Date(now - 12 * H) } }, include: { patient: { select: { id: true, firstName: true, lastName: true } }, _count: { select: { questions: true } } } }),
-    prisma.patient.findMany({ where: { emailVerifiedAt: null, accountStatus: "active", createdAt: { lte: new Date(now - 48 * H) } }, select: { id: true, firstName: true, lastName: true, createdAt: true, lockedUntil: true } }),
-    prisma.deviceConnection.findMany({ where: { status: "connected", OR: [{ lastSyncAt: null }, { lastSyncAt: { lt: new Date(now - 48 * H) } }] }, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
+    prisma.patient.findMany({ where: UNVERIFIED(now), select: { id: true, firstName: true, lastName: true, createdAt: true, lockedUntil: true }, orderBy: { createdAt: "desc" }, take: 200 }),
+    prisma.deviceConnection.findMany({ where: STALE_DEVICE(now), take: 200, include: { patient: { select: { id: true, firstName: true, lastName: true } } } }),
   ]);
   const vmap = await visitorIdsFor(emerg.filter((e) => !e.patient).map((e) => e.sessionId));
   const items: QueueItem[] = [];
@@ -150,17 +171,24 @@ export async function loadQueue(): Promise<QueueItem[]> {
 }
 
 // ── Analytics ────────────────────────────────────────────────────────────
-async function distinctSessions(model: "pageVisit" | "symptomCheckLog" | "albaConversation" | "longevityAssessment" | "labResultCheck" | "outboundClick", start: Date, end: Date) {
-  const rows = await (prisma[model] as any).findMany({ where: { createdAt: { gte: start, lt: end }, NOT: { sessionId: { startsWith: "test_" } } }, select: { sessionId: true }, distinct: ["sessionId"] });
-  return rows.map((r: { sessionId: string }) => r.sessionId) as string[];
+// Distinct people (browser sessions) are counted inside PostgreSQL — never loaded into
+// memory (a year at 5,000 visitors a day is millions of rows).
+const AI_TABLES = ["SymptomCheckLog", "AlbaConversation", "LongevityAssessment", "LabResultCheck"];
+async function sessionCounts(start: Date, end: Date) {
+  const inR = `"createdAt" >= $1 and "createdAt" < $2 and "sessionId" not like 'test\\_%'`;
+  const ai = AI_TABLES.map((t) => `select "sessionId" from "${t}" where ${inR}`).join(" union ");
+  const rows = await prisma.$queryRawUnsafe<{ visitors: bigint; ai: bigint }[]>(
+    `with ai as (${ai}),
+          everyone as (select "sessionId" from "PageVisit" where ${inR} union select "sessionId" from ai)
+     select (select count(*) from everyone) visitors, (select count(*) from ai) ai`, start, end);
+  return { visitors: Number(rows[0]?.visitors || 0), aiUsers: Number(rows[0]?.ai || 0) };
 }
 const notTest = { NOT: { id: { startsWith: "test_" } } };
 
 async function periodCounts(start: Date, end: Date) {
   const inR = { gte: start, lt: end };
-  const [pageSessions, aiSessions, signups, verified, devices, referrals, sc, al, la, lc, out] = await Promise.all([
-    distinctSessions("pageVisit", start, end),
-    Promise.all((["symptomCheckLog", "albaConversation", "longevityAssessment", "labResultCheck"] as const).map((m) => distinctSessions(m, start, end))).then((x) => new Set(x.flat())),
+  const [sessions, signups, verified, devices, referrals, sc, al, la, lc, out] = await Promise.all([
+    sessionCounts(start, end),
     prisma.patient.count({ where: { createdAt: inR, ...notTest } }),
     prisma.patient.count({ where: { emailVerifiedAt: inR, ...notTest } }),
     prisma.deviceConnection.count({ where: { connectedAt: inR, status: "connected", NOT: { patientId: { startsWith: "test_" } } } }),
@@ -171,7 +199,7 @@ async function periodCounts(start: Date, end: Date) {
     prisma.labResultCheck.count({ where: { createdAt: inR, ...notTest } }),
     prisma.outboundClick.count({ where: { createdAt: inR, NOT: { sessionId: { startsWith: "test_" } } } }),
   ]);
-  return { visitors: new Set([...pageSessions, ...aiSessions]).size, aiUsers: aiSessions.size, signups, verified, devices, referrals, ai: sc + al + la + lc, sc, al, la, lc, out };
+  return { visitors: sessions.visitors, aiUsers: sessions.aiUsers, signups, verified, devices, referrals, ai: sc + al + la + lc, sc, al, la, lc, out };
 }
 
 function delta(cur: number, prev: number, suffix: string) {
@@ -189,13 +217,16 @@ async function metricsAndFunnel(r: ReturnType<typeof parseRange>): Promise<{ met
 
   // Cohort funnel for people who arrived in this range.
   const inR = { gte: r.start, lt: r.end };
-  const newPatients = await prisma.patient.findMany({
-    where: { createdAt: inR, ...notTest },
-    select: { emailVerifiedAt: true, devices: { where: { status: "connected" }, select: { id: true }, take: 1 }, appointments: { select: { id: true }, take: 1 } },
-  });
+  const cohort = { createdAt: inR, ...notTest };
+  const [signedUp, verifiedN, deviceN, bookedN] = await Promise.all([
+    prisma.patient.count({ where: cohort }),
+    prisma.patient.count({ where: { ...cohort, emailVerifiedAt: { not: null } } }),
+    prisma.patient.count({ where: { ...cohort, devices: { some: { status: "connected" } } } }),
+    prisma.patient.count({ where: { ...cohort, appointments: { some: {} } } }),
+  ]);
   const steps: [string, number][] = [
-    ["Visitors", cur.visitors], ["Used an AI tool", cur.aiUsers], ["Signed up", newPatients.length],
-    ["Verified", newPatients.filter((p) => p.emailVerifiedAt).length], ["Connected device", newPatients.filter((p) => p.devices.length).length], ["Booked visit", newPatients.filter((p) => p.appointments.length).length],
+    ["Visitors", cur.visitors], ["Used an AI tool", cur.aiUsers], ["Signed up", signedUp],
+    ["Verified", verifiedN], ["Connected device", deviceN], ["Booked visit", bookedN],
   ];
   const top = Math.max(steps[0][1], 1);
   const funnel = steps.map(([label, n], i) => ({
@@ -207,9 +238,18 @@ async function metricsAndFunnel(r: ReturnType<typeof parseRange>): Promise<{ met
   return { metrics, funnel, cur };
 }
 
+/** Overview numbers and funnel only (heavy part, cached). */
+export async function overviewNumbers(range: string | null, from?: string | null, to?: string | null) {
+  const { metrics, funnel } = await metricsAndFunnel(parseRange(range, from, to));
+  return { metrics, funnel };
+}
+
 export async function overview(range: string | null, from?: string | null, to?: string | null): Promise<OverviewDTO> {
   const r = parseRange(range, from, to);
-  const [queue, mf, activity] = await Promise.all([loadQueue(), metricsAndFunnel(r), activityFeed(6)]);
+  // Numbers come from the stats cache (kept warm in the background); the work queue and activity stay live.
+  const { statsCache } = await import("@backend/statsWarm");
+  const c = statsCache("overview", range, from, to);
+  const [queue, mf, activity] = await Promise.all([loadQueue(), cached(c.key, c.ttl, () => overviewNumbers(range, from, to)), activityFeed(6)]);
   return { queue, metrics: mf.metrics, funnel: mf.funnel, rangeLabel: r.label, activity };
 }
 
@@ -675,13 +715,13 @@ export async function settings(): Promise<SettingsDTO> {
 
 export async function boot(actor: string, role = "Admin (shared)"): Promise<BootDTO> {
   const [queue, ref, testP, activity] = await Promise.all([
-    loadQueue(),
+    queueCounts(),
     prisma.referralSubmission.findFirst({ where: { status: "received" }, orderBy: { createdAt: "desc" }, select: { id: true, patientName: true, specialties: true, createdAt: true } }),
     prisma.patient.count({ where: { id: { startsWith: "test_" } } }),
     activityFeed(3),
   ]);
   return {
-    actor, role, queueCount: queue.length, emergencyCount: queue.filter((q) => q.priority === "Emergency").length,
+    actor, role, queueCount: queue.total, emergencyCount: queue.emergency,
     latestReferral: ref ? { id: ref.id, code: shortCode("R", ref.id), label: `${ref.patientName || "(no name)"} · ${list(ref.specialties)[0] || "Referral"} · ${fmtShort(ref.createdAt, true)}` } : null,
     emailConfigured: emailConfigured(), hasTestData: testP > 0, activity,
   };
