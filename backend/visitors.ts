@@ -91,43 +91,32 @@ export async function linkVisitorToPatient(sessionId: string | null, patientId: 
 }
 
 /**
- * Activity recorded before visitor records existed has a sessionId but no
- * Visitor row. Create the missing rows (oldest first, in batches) so every
- * anonymous person appears in the console.
+ * Activity recorded before visitor records existed has a sessionId but no Visitor row.
+ * Creates the missing rows (oldest first). Everything is worked out inside PostgreSQL —
+ * only the missing sessions come back — so it stays fast on millions of page views.
+ * Runs in the background worker (hourly), never inside a page request.
+ *   sinceDays: only look at activity this recent (null = all history, used once).
  */
-export async function backfillVisitors(limit = 400) {
-  const known = new Set((await prisma.visitor.findMany({ select: { sessionId: true } })).map((v) => v.sessionId));
-  const firstSeen = new Map<string, { at: Date; path?: string; ua?: string | null; ref?: string | null; pages: number }>();
-  const add = (sid: string, at: Date, extra: { path?: string; ua?: string | null; ref?: string | null; page?: boolean } = {}) => {
-    if (!sid || known.has(sid)) return;
-    const cur = firstSeen.get(sid);
-    if (!cur) firstSeen.set(sid, { at, path: extra.path, ua: extra.ua, ref: extra.ref, pages: extra.page ? 1 : 0 });
-    else {
-      if (at < cur.at) Object.assign(cur, { at, path: extra.path ?? cur.path, ref: extra.ref ?? cur.ref });
-      if (extra.page) cur.pages++;
-    }
-  };
-  const [pv, sc, al, la, lc, rf] = await Promise.all([
-    prisma.pageVisit.findMany({ select: { sessionId: true, createdAt: true, path: true, userAgent: true, referrer: true }, orderBy: { createdAt: "asc" }, take: 20000 }),
-    prisma.symptomCheckLog.findMany({ select: { sessionId: true, createdAt: true } }),
-    prisma.albaConversation.findMany({ select: { sessionId: true, createdAt: true } }),
-    prisma.longevityAssessment.findMany({ select: { sessionId: true, createdAt: true } }),
-    prisma.labResultCheck.findMany({ select: { sessionId: true, createdAt: true } }),
-    prisma.referralSubmission.findMany({ select: { sessionId: true, createdAt: true } }),
-  ]);
-  pv.forEach((x) => add(x.sessionId, x.createdAt, { path: x.path, ua: x.userAgent, ref: x.referrer, page: true }));
-  [...sc, ...al, ...la, ...lc, ...rf].forEach((x) => add(x.sessionId, x.createdAt));
-  const lastSeen = new Map<string, Date>();
-  [...pv, ...sc, ...al, ...la, ...lc, ...rf].forEach((x) => { const c = lastSeen.get(x.sessionId); if (!c || x.createdAt > c) lastSeen.set(x.sessionId, x.createdAt); });
-  let made = 0;
-  for (const [sessionId, f] of firstSeen) {
-    if (made >= limit) break;
-    try {
-      await prisma.visitor.create({
-        data: { id: newVisitorId(), sessionId, firstSeenAt: f.at, lastSeenAt: lastSeen.get(sessionId) || f.at, pageCount: f.pages, landingPath: f.path, referrer: f.ref ?? undefined, userAgent: f.ua ?? undefined },
-      });
-      made++;
-    } catch { /* ID clash or race — picked up next time */ }
-  }
-  return made;
+export async function backfillVisitors(opts: { limit?: number; sinceDays?: number | null } = {}) {
+  const limit = Math.min(Math.max(opts.limit ?? 2000, 1), 20000);
+  const since = opts.sinceDays == null ? new Date(0) : new Date(Date.now() - opts.sinceDays * 86400_000);
+  const acts = [
+    `select "sessionId", "createdAt", path, "userAgent", referrer, 1 page from "PageVisit" where "createdAt" >= $1`,
+    ...["SymptomCheckLog", "AlbaConversation", "LongevityAssessment", "LabResultCheck", "ReferralSubmission"].map(
+      (t) => `select "sessionId", "createdAt", null, null, null, 0 from "${t}" where "createdAt" >= $1`),
+  ].join(" union all ");
+  const rows = await prisma.$queryRawUnsafe<{ sessionId: string; first: Date; last: Date; pages: number; landing: string | null; ua: string | null; ref: string | null }[]>(
+    `with acts as (${acts}),
+          missing as (select a.* from acts a where a."sessionId" <> '' and not exists (select 1 from "Visitor" v where v."sessionId" = a."sessionId"))
+     select "sessionId", min("createdAt") first, max("createdAt") last, sum(page)::int pages,
+            (array_agg(path order by "createdAt") filter (where path is not null))[1] landing,
+            (array_agg("userAgent" order by "createdAt") filter (where "userAgent" is not null))[1] ua,
+            (array_agg(referrer order by "createdAt") filter (where referrer is not null))[1] ref
+     from missing group by "sessionId" order by min("createdAt") limit $2`, since, limit);
+  if (!rows.length) return 0;
+  const r = await prisma.visitor.createMany({
+    data: rows.map((x) => ({ id: newVisitorId(), sessionId: x.sessionId, firstSeenAt: x.first, lastSeenAt: x.last, pageCount: x.pages, landingPath: x.landing, referrer: x.ref, userAgent: x.ua })),
+    skipDuplicates: true, // a visit recorded at the same moment — picked up as normal
+  });
+  return r.count;
 }
