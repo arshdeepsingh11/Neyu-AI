@@ -1,11 +1,20 @@
-// GET  /api/v1/staff — staff, roles and the permission catalogue (staff.invite or staff.roles.manage)
-// POST /api/v1/staff { email, name, role } — add a staff member; the one-time password is in the response.
+// GET  /api/v1/staff — staff, their type and features (super admins only)
+// POST /api/v1/staff { username, name, password?, kind: "admin"|"super", features?, twoStep? }
+//   password empty → a strong one is generated and returned once.
 import { z } from "zod";
 import { v1 } from "@backend/apiv1";
 import { staffView, runStaffAction } from "@backend/staffAdmin";
+import { FEATURE_KEYS } from "@backend/features";
 
-const Invite = z.object({ email: z.string().email().max(254), name: z.string().trim().min(2).max(80), role: z.enum(["super_admin", "org_admin", "clinic_manager", "care_staff", "physician", "support"]) }).strict();
+const Create = z.object({
+  username: z.string().trim().min(3).max(254),
+  name: z.string().trim().min(2).max(80),
+  password: z.string().max(200).optional(),
+  kind: z.enum(["admin", "super"]),
+  features: z.array(z.enum(FEATURE_KEYS as [string, ...string[]])).max(20).optional(),
+  twoStep: z.boolean().optional(),
+}).strict();
 
-export const GET = v1({ perms: ["staff.invite", "staff.roles.manage"] }, async ({ admin }) => staffView(admin));
+export const GET = v1({ perms: ["staff.invite"] }, async ({ admin }) => staffView(admin));
 
-export const POST = v1({ perms: ["staff.invite"], body: Invite }, async ({ admin, ip, body }) => runStaffAction({ action: "staff.invite", ...body }, admin, ip));
+export const POST = v1({ perms: ["staff.invite"], body: Create }, async ({ admin, ip, body }) => runStaffAction({ action: "staff.create", ...body }, admin, ip));
