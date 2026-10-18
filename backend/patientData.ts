@@ -466,7 +466,7 @@ export async function getDevices(patientId: string): Promise<DeviceDTO[]> {
   const { oauthConfigured } = await import("@backend/oauth");
   return DEVICE_CATALOG.map((d) => {
     const r = rows.find((x) => x.provider === d.id);
-    const available = d.mode === "shortcut" || (d.mode === "oauth" && oauthConfigured(d.id));
+    const available = d.mode === "shortcut" || d.mode === "app" || (d.mode === "oauth" && oauthConfigured(d.id));
     const status: DeviceDTO["status"] = !r || r.status === "disconnected" ? "off" : r.status === "waitlist" ? "waitlist" : r.status === "connected" ? "on" : "pending";
     const stale = status === "on" && !!r?.lastSyncAt && Date.now() - r.lastSyncAt.getTime() > 3 * 86400000;
     return { id: d.id, name: d.name, icon: d.icon, signals: d.signals.map((s) => s.label), available, status, lastSyncAt: r?.lastSyncAt?.toISOString() ?? null,
