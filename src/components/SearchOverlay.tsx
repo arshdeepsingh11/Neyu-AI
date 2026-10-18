@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { track } from "@/lib/track";
 import { SEARCH_INDEX, SEARCH_SUGGESTED, SPECS, DIAGS, PAGE_HREF, type NavLink } from "@/data/homeContent";
 import { LAB_TESTS, WELLNESS } from "@/data/bioaroCatalog";
 import { NEA_TREATMENTS } from "@/data/nea";
@@ -57,6 +58,14 @@ export default function SearchOverlay({ open, onClose }: { open: boolean; onClos
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (!open) setQ(""); else setTimeout(() => input.current?.focus(), 60); }, [open]);
+  // Insights: what people search for (anonymous), once they stop typing.
+  const logged = useRef(new Set<string>());
+  useEffect(() => {
+    const term = q.trim().toLowerCase();
+    if (term.length < 3 || logged.current.has(term)) return;
+    const t = setTimeout(() => { logged.current.add(term); track("search", term); }, 1500);
+    return () => clearTimeout(t);
+  }, [q]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
