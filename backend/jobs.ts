@@ -48,6 +48,10 @@ export async function runJob(name: JobName | string, data: any): Promise<unknown
       const rollup = ranges.includes("7D") ? await rollupRecent() : null;
       return { rollup, ...(await warmStats(ranges)) };
     }
+    case "push.send": {
+      const { deliverPush } = await import("@backend/push");
+      return deliverPush(String(data.patientId), { title: String(data.title), body: String(data.body), url: String(data.url || "/my-health") });
+    }
     case "visitors.backfill": {
       const { backfillVisitors } = await import("@backend/visitors");
       const { kv } = await import("@backend/kv");
