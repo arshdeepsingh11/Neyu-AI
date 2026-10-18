@@ -1,6 +1,7 @@
 // GET    /api/portal/devices                       — device list + status
 // POST   /api/portal/devices  { provider }          — connect: Shortcut sources get a private sync token (shown once),
 //                                                   one-time sign-in sources get { redirect }, waitlist sources are noted
+//                      { provider, via: "app" }      — from the NEYU phone app (Apple Health / Health Connect): a sync token
 // PATCH  /api/portal/devices  { provider, dataTypes } — choose which signals are shared
 // DELETE /api/portal/devices?provider=apple         — disconnect (token revoked; existing data kept)
 import { randomBytes } from "crypto";
@@ -17,10 +18,12 @@ const find = (p: string) => DEVICE_CATALOG.find((d) => d.id === p);
 export const GET = () => withPatient(async ({ patient }) => getDevices(patient.id));
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  const provider = str((await readJson(req)).provider, 20);
+  const b = await readJson(req);
+  const provider = str(b.provider, 20), viaApp = b.via === "app";
   const dev = find(provider);
   if (!dev) throw new HttpError(400, "Unknown device.");
-  if (dev.mode === "waitlist") {
+  // Health Connect needs the phone app; on the website it is "tell me when the app is ready".
+  if (dev.mode === "waitlist" || (dev.mode === "app" && !viaApp)) {
     await prisma.deviceConnection.upsert({ where: { patientId_provider: { patientId: patient.id, provider } }, create: { patientId: patient.id, provider, status: "waitlist" }, update: { status: "waitlist" } });
     audit(patient.id, "patient", "create", `device-waitlist:${provider}`, ip);
     return { waitlist: true, devices: await getDevices(patient.id) };
@@ -34,7 +37,9 @@ export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }
   await prisma.deviceConnection.upsert({
     where: { patientId_provider: { patientId: patient.id, provider } },
     create: { patientId: patient.id, provider, status: "pending", tokenHash: sha256(token), tokenHint: token.slice(-4), dataTypes },
-    update: { status: "pending", tokenHash: sha256(token), tokenHint: token.slice(-4) },
+    // From the app, the phone's own permission screen is where the patient chooses what to share,
+    // so every signal is allowed here (Apple Health / Health Connect only hand over what was allowed).
+    update: { status: "pending", tokenHash: sha256(token), tokenHint: token.slice(-4), ...(viaApp ? { dataTypes } : {}) },
   });
   audit(patient.id, "patient", "create", `device:${provider}`, ip);
   return { token, devices: await getDevices(patient.id) };
