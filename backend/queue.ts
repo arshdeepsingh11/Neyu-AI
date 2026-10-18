@@ -19,7 +19,9 @@ export type JobName =
   | "privacy.deletion.run" // { requestId }
   | "privacy.sweep"        // due deletions + expired exports
   | "sessions.cleanup"     // expired staff + patient sessions
-  | "daily";               // wearables sync, briefs, reminders (was only /api/cron/daily)
+  | "daily"                // wearables sync, briefs, reminders (was only /api/cron/daily)
+  | "stats.warm"           // { ranges } dashboard numbers ready in the cache (Phase 5)
+  | "visitors.backfill";   // { sinceDays } visitor rows for older anonymous activity
 
 const g = globalThis as unknown as { neyuQueue?: Queue; neyuQueueConn?: IORedis };
 
