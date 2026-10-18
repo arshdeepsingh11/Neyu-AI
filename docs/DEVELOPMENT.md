@@ -80,3 +80,10 @@ npx newman run postman/NEYU-API.postman_collection.json \
 Accounts with 2-step on also need `--env-var totpSecret=<key under "Can't scan? Type this key">`.
 
 API reference: `GET /api/v1/openapi.json` (OpenAPI 3.1) · health: `GET /api/v1/health`.
+
+## 8 · Performance (Phase 5)
+
+- Dashboards read daily totals (`DailyStat`) and a cache the worker refreshes every 10 minutes (7D/30D) and hourly (90D/1Y). A custom date range is worked out on request.
+- Health: `GET /api/v1/health` (503 when the database is down). Metrics: `GET /api/v1/metrics` with `METRICS_TOKEN`.
+- Load test with a year of test data: `loadtest/README.md`.
+

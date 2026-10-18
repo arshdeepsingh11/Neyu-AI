@@ -155,9 +155,11 @@ pie showData
 | Staff sign-in | 38 | passwords, 2-step codes, lock-outs, replay protection, old shared password switch-off |
 | Phase 3 platform | 101 | break-glass, staff management, audit, privacy, storage, Redis, worker, API v1 |
 | Phase 4 admin & insights | 78 | .env super admin, admins with chosen features, live access changes, Insights, SEO |
+| Phase 5 performance | 27 | one year of data: dashboards, daily totals, background jobs, health & metrics, caching |
 | Patient API | 80 | My Health Space end to end |
 | Postman / Newman | 86 | 59 requests across website, patient, admin and API v1 |
-| **Total** | **383** | all passing |
+| **Total** | **410** | all passing |
+| Load test (k6) | 200 at once | pages p95 0.23 s · My Health Space 0.50 s · dashboards 0.76 s · 0 errors |
 
 ## ✦ Roadmap
 
@@ -168,8 +170,8 @@ pie showData
 | 2 · Database | PostgreSQL 16, migrations, import, seed | ✅ Done |
 | 3 · Core backend | Staff sign-in + 2-step, roles, break-glass, audit, privacy, file storage, Redis, worker, API v1 | ✅ Done |
 | 4 · Admin dashboards | Super admin + admins with chosen features, Insights, SEO / AEO / GEO on every page | ✅ Done |
-| 5 · Performance | Load balancing, connection pooling, partitioning | ⏭ Next |
-| 6 · Mobile app | iOS & Android | ◻ Planned |
+| 5 · Performance | Ready for 5,000 visitors a day: daily totals, background-warmed dashboards, cluster mode, monitoring, load tests | ✅ Done |
+| 6 · Mobile app | iOS & Android | ⏭ Next |
 | 7 · Devices | Apple Health · Health Connect | ◻ Planned |
 | 8 · Legal pages | Privacy policy, terms, AI notice | ◻ Planned |
 | 9 · Go live | Production rollout with DevOps | ◻ Planned |
