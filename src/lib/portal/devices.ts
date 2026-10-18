@@ -7,12 +7,15 @@ import type { MetricKey } from "./metrics";
 //   oauth    — one-time sign-in with the maker (Withings, Oura, WHOOP); NEYU
 //              then pulls new data every day. Live only when the clinic has
 //              set that maker's client id/secret on the server.
+//   app      — only from the NEYU phone app (Android Health Connect). On the website the
+//              card offers "Notify me" until the app is in Google Play.
 //   waitlist — not open yet (maker's program closed or our app not ready);
 //              patients can ask to be told when it opens.
+// In the NEYU iPhone app, iPhone and Apple Watch connect straight to Apple Health (no Shortcut).
 // The guide text is shown in the Connect sheet before anything happens.
 
-export type ConnectMode = "shortcut" | "oauth" | "waitlist";
-export interface DeviceGuide { needs: string; steps: string[]; meanwhile?: string; note?: string }
+export type ConnectMode = "shortcut" | "oauth" | "app" | "waitlist";
+export interface DeviceGuide { needs: string; steps: string[]; meanwhile?: string; note?: string; appSoon?: string }
 export interface CatalogDevice {
   id: ProviderId; name: string; icon: string; blurb: string; mode: ConnectMode; beta?: boolean;
   signals: { label: string; metrics: MetricKey[] }[];
@@ -28,6 +31,8 @@ export const DEVICE_CATALOG: CatalogDevice[] = [
     signals: [
       { label: "Activity", metrics: ACTIVITY },
       { label: "Sleep", metrics: SLEEP },
+      { label: "Heart rate", metrics: ["rhr", "spo2"] },
+      { label: "HRV", metrics: ["hrv"] },
       { label: "Blood pressure", metrics: ["bp"] },
       { label: "Weight", metrics: ["weight"] },
       { label: "Blood glucose", metrics: ["glucose"] },
@@ -40,7 +45,7 @@ export const DEVICE_CATALOG: CatalogDevice[] = [
         "On your phone: copy your sync link, add the NEYU Sync shortcut, and tap Allow for Health.",
         "Turn on the daily 9 PM automation. This card turns Connected when the first data arrives.",
       ],
-      note: "Sleep appears if you use Sleep Schedule or a sleep app that writes to Health. Heart rate variability and blood oxygen need an Apple Watch.",
+      note: "Sleep appears if you use Sleep Schedule or a sleep app that writes to Health. Heart rate variability and blood oxygen need an Apple Watch. In the NEYU iPhone app, Connect reads Apple Health directly — no Shortcut needed.",
     } },
   { id: "apple", name: "Apple Watch", icon: "ph ph-watch", mode: "shortcut",
     blurb: "Heart, recovery, sleep and activity from your watch, sent through Apple Health on your iPhone.",
@@ -100,12 +105,17 @@ export const DEVICE_CATALOG: CatalogDevice[] = [
       steps: ["Fitbit is moving to Google's new Health API. We're completing Google's review. Tap Notify me and we'll tell you when it's ready."],
       meanwhile: "Import a CSV export from your Fitbit account, or enter readings yourself.",
     } },
-  { id: "android", name: "Android (Health Connect)", icon: "ph ph-android-logo", mode: "waitlist",
+  { id: "android", name: "Android (Health Connect)", icon: "ph ph-android-logo", mode: "app",
     blurb: "Samsung Health, Google and other Android apps through Health Connect.",
-    signals: [{ label: "Activity", metrics: ACTIVITY }, { label: "Heart rate", metrics: ["rhr", "hrv"] }, { label: "Sleep", metrics: SLEEP }, { label: "Blood pressure", metrics: ["bp"] }, { label: "Weight", metrics: ["weight"] }],
+    signals: [{ label: "Activity", metrics: ACTIVITY }, { label: "Heart rate", metrics: ["rhr", "hrv", "spo2"] }, { label: "Sleep", metrics: SLEEP }, { label: "Blood pressure", metrics: ["bp"] }, { label: "Weight", metrics: ["weight"] }, { label: "Blood glucose", metrics: ["glucose"] }],
     guide: {
-      needs: "An Android phone with Health Connect.",
-      steps: ["Health Connect only works from an app on the phone. The NEYU Android app is in development — tap Notify me and we'll tell you when it's in Google Play."],
+      needs: "An Android phone with Health Connect (built into Android 14 and later; from Google Play on Android 8–13) and the NEYU app.",
+      steps: [
+        "Open My Health Space in the NEYU Android app → Devices → Android → Connect.",
+        "Health Connect asks which data NEYU may read. Choose what to share and tap Allow.",
+        "NEYU reads the last 30 days, then new days each time you open the app.",
+      ],
+      appSoon: "Health Connect only works from an app on the phone. The NEYU Android app is coming to Google Play — tap Notify me and we'll tell you when it's ready.",
       meanwhile: "Import a CSV file or enter readings yourself.",
     } },
 ];
