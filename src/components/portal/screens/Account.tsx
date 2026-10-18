@@ -12,6 +12,8 @@ import { C, screenAnim, ToggleList, Avatar, longDateTz } from "../ui";
 import { setHistoryFilter } from "./History";
 import PasswordStrength from "../PasswordStrength";
 import { NIcon } from "@/components/neyu/icons";
+import { nativeBeforeSignOut } from "@/lib/native/session";
+import { PhoneNotifications, PhoneLock } from "../NativeSettings";
 
 const ALL_DATA = [EP.today, EP.trends, EP.results, EP.protocol, EP.history, EP.appointments, EP.referrals];
 
@@ -128,6 +130,7 @@ export function Profile() {
   };
   const signOut = async () => {
     setBusy("out");
+    await nativeBeforeSignOut();
     try { await api("/api/portal/auth/sign-out", { body: {} }); } catch {}
     announceSession(); window.location.href = "/";
   };
@@ -227,6 +230,7 @@ export function Profile() {
       </section>
 
       <AppHomeSetting />
+      <PhoneLock />
       <button onClick={signOut} disabled={busy === "out"} className="h-danger" style={{ width: "100%", height: 48, border: "1px solid rgba(139,75,55,.25)", borderRadius: 12, background: "none", color: C.peachInk, fontSize: 15, cursor: "pointer", marginBottom: 16 }}>Sign out</button>
       <p style={{ margin: 0, fontSize: 13, color: C.muted }}>My Health Space shows information from your connected sources and NEYU. It doesn't replace advice from your care team.</p>
     </div>
@@ -433,6 +437,7 @@ export function Notifications() {
         { label: "Protocol reminders", sub: "At the times in your routine", on: settings.notifProtocol, toggle: toggle("notifProtocol") },
         { label: "Appointment reminders", sub: "The day before and morning of", on: settings.notifAppt, toggle: toggle("notifAppt") },
       ]} />
+      <PhoneNotifications />
       <EmailPrefs />
     </div>
   );

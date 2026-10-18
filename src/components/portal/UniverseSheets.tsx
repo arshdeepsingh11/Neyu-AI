@@ -14,6 +14,8 @@ import { usePortal } from "./context";
 import { EP, api, prime, invalidate, load, useResource } from "./api";
 import { C, Switch, Loading, btnPrimary, btnOutline, btnLink } from "./ui";
 import { NIcon } from "@/components/neyu/icons";
+import { isNative, call } from "@/lib/native/bridge";
+import { nativeHealthProvider, connectNativeHealth, healthName } from "@/lib/native/health";
 
 const input: React.CSSProperties = { width: "100%", height: 46, padding: "0 12px", borderRadius: 12, border: `1px solid ${C.line12}`, background: C.card, fontSize: 16, color: C.ink, boxSizing: "border-box" };
 const lab: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6, fontSize: 14, color: C.ink2 };
@@ -29,9 +31,26 @@ export function ConnectSheet({ id }: { id: string }) {
   const d = data?.find((x) => x.id === id);
   if (!d) return <Loading />;
   const waiting = d.status === "waitlist";
+  // In the NEYU app: Apple Health / Health Connect read directly on the phone.
+  const native = nativeHealthProvider(d.id);
+  const appOnly = d.mode === "app" && !native; // Health Connect on the website → "Notify me"
   const primary = async () => {
     setBusy(true);
     try {
+      if (native) {
+        const r = await connectNativeHealth(native);
+        prime(EP.devices, await api<DeviceDTO[]>(EP.devices)); refreshAll();
+        toast(r.stored ? `${healthName()} connected · ${r.stored} readings` : `${healthName()} connected. Data appears once your phone has some.`);
+        openSheet({ t: "manage", id: native });
+        return;
+      }
+      // Withings / Oura / WHOOP from the app: sign in in the phone's browser, then back to the app.
+      if (d.mode === "oauth" && d.available && isNative()) {
+        const r = await api<{ url: string }>(`/api/portal/oauth/${d.id}/handoff`, { body: {} });
+        await call("Browser", "open", { url: r.url, presentationStyle: "popover" });
+        openSheet(null);
+        return;
+      }
       const r = await api<{ token?: string; redirect?: string; waitlist?: boolean; devices: DeviceDTO[] }>(EP.devices, { body: { provider: d.id } });
       prime(EP.devices, r.devices);
       if (r.redirect) { window.location.href = r.redirect; return; }
@@ -39,27 +58,29 @@ export function ConnectSheet({ id }: { id: string }) {
       openSheet({ t: "manage", id: d.id, token: r.token });
     } catch (e: any) { toast(e.message); } finally { setBusy(false); }
   };
-  const label = d.mode === "shortcut" ? "Connect" : d.mode === "oauth" && d.available ? `Connect with ${d.name}` : waiting ? "You're on the list" : "Notify me";
+  const label = native ? `Connect ${healthName()}` : d.mode === "shortcut" ? "Connect" : d.mode === "oauth" && d.available ? `Connect with ${d.name}` : waiting ? "You're on the list" : "Notify me";
+  const steps = native === "iphone" ? ["Tap Connect Apple Health.", "Apple Health asks which data NEYU may read. Turn on what you want to share and tap Allow.", "NEYU reads the last 30 days now, then new days each time you open the app."]
+    : native ? d.guide.steps : appOnly ? [d.guide.appSoon || d.guide.steps[0]] : d.mode === "oauth" && !d.available ? ["This connection is being approved with the maker. Tap Notify me and we'll tell you the day it opens."] : d.guide.steps;
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
         <span style={{ width: 48, height: 48, borderRadius: 14, background: C.tealWash, display: "flex", alignItems: "center", justifyContent: "center", color: C.teal }}><NIcon name={d.icon.replace(/^ph(-fill|-bold)? /, "")} size={24} tone="currentColor" /></span>
         <div><h2 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>{d.name}{d.beta && <span style={{ marginLeft: 8, fontSize: 12, padding: "2px 8px", borderRadius: 10, background: C.lav, color: C.lavInk, verticalAlign: "middle" }}>Beta</span>}</h2>
-          <span style={{ fontSize: 13, color: C.muted }}>{d.mode === "oauth" ? (d.available ? "One-time sign-in · syncs every day" : "Opening soon") : d.mode === "shortcut" ? "Daily sync through Apple Health" : "Coming soon"}</span></div>
+          <span style={{ fontSize: 13, color: C.muted }}>{native ? `Reads ${healthName()} on this phone` : d.mode === "oauth" ? (d.available ? "One-time sign-in · syncs every day" : "Opening soon") : d.mode === "shortcut" ? "Daily sync through Apple Health" : d.mode === "app" ? "In the NEYU Android app" : "Coming soon"}</span></div>
       </div>
       <p style={{ margin: "0 0 16px", fontSize: 15, lineHeight: 1.55, color: C.ink2 }}>{d.blurb}</p>
       <section style={{ padding: 16, borderRadius: 16, background: C.card, border: `1px solid ${C.line}`, marginBottom: 14 }}>
         <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>You need</div>
-        <p style={{ margin: "0 0 14px", fontSize: 14.5, lineHeight: 1.5 }}>{d.guide.needs}</p>
+        <p style={{ margin: "0 0 14px", fontSize: 14.5, lineHeight: 1.5 }}>{native === "iphone" ? "This iPhone with the Health app (built in). An Apple Watch adds heart rate variability and blood oxygen." : d.guide.needs}</p>
         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>How it works</div>
         <ol style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8, fontSize: 14.5, lineHeight: 1.5, color: C.ink2 }}>
-          {(d.mode === "oauth" && !d.available ? ["This connection is being approved with the maker. Tap Notify me and we'll tell you the day it opens."] : d.guide.steps).map((s) => <li key={s}>{s}</li>)}
+          {steps.map((s) => <li key={s}>{s}</li>)}
         </ol>
-        {d.guide.note && <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.5, color: C.muted }}>{d.guide.note}</p>}
+        {d.guide.note && !native && <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.5, color: C.muted }}>{d.guide.note}</p>}
       </section>
-      {d.guide.meanwhile && (
+      {d.guide.meanwhile && !native && (
         <section style={{ padding: 14, borderRadius: 14, background: C.lav, marginBottom: 16, fontSize: 14, lineHeight: 1.5 }}>
-          <b style={{ fontWeight: 500, color: C.lavInk }}>{d.available && d.mode !== "waitlist" ? "Another way" : "Meanwhile"}</b><br />{d.guide.meanwhile}
+          <b style={{ fontWeight: 500, color: C.lavInk }}>{d.available && d.mode !== "waitlist" && !appOnly ? "Another way" : "Meanwhile"}</b><br />{d.guide.meanwhile}
         </section>
       )}
       <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Shares</div>

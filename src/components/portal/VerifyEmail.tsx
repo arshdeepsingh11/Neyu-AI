@@ -3,6 +3,7 @@
 // Email verification step: 6 single-digit boxes (auto-advance, paste,
 // backspace), resend with countdown, and sign-out to use another email.
 
+import { nativeBeforeSignOut } from "@/lib/native/session";
 import React, { useEffect, useRef, useState } from "react";
 import { api, announceSession } from "./api";
 import { C } from "./ui";
@@ -70,7 +71,7 @@ export default function VerifyEmail({ maskedEmail, needsCode, initialWait, devMo
     if (e.key === "ArrowLeft" && i > 0) refs.current[i - 1]?.focus();
     if (e.key === "ArrowRight" && i < 5) refs.current[i + 1]?.focus();
   };
-  const signOut = async () => { try { await api("/api/portal/auth/sign-out", { body: {} }); } catch {} announceSession(); window.location.assign("/my-health/sign-up"); };
+  const signOut = async () => { await nativeBeforeSignOut(); try { await api("/api/portal/auth/sign-out", { body: {} }); } catch {} announceSession(); window.location.assign("/my-health/sign-up"); };
 
   return (
     <div className="mhs mhs-page">
