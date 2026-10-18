@@ -8,7 +8,7 @@ import { PrivacyRequests, SystemStatus } from "./PrivacyRequests";
 import { T, S, chip, Chip, Failed, BlockSkeleton } from "../ui";
 import { brand } from "@/data/content";
 
-const TABS: [string, string, string?][] = [["clinic", "Clinic"], ["email", "Email"], ["signup", "Sign-up"], ["retention", "Data retention"], ["export", "Export", "exports.create"], ["roles", "Staff & Roles", "staff.invite|staff.roles.manage"], ["privacy", "Privacy requests", "privacy.deletion.manage|privacy.export.manage"], ["system", "System"]];
+const TABS: [string, string, string?][] = [["clinic", "Clinic"], ["email", "Email"], ["signup", "Sign-up"], ["retention", "Data retention"], ["export", "Export", "exports.create"], ["roles", "Staff", "staff.invite"], ["privacy", "Privacy requests", "privacy.deletion.manage|privacy.export.manage"], ["system", "System", "platform.settings.manage"]];
 
 export default function Settings({ tab, setTab }: { tab: string; setTab: (t: string) => void }) {
   const a = useAdmin();
