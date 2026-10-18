@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NEYU Health API (local)",
-    "description": "Run against your PC: npm run dev → baseUrl http://localhost:3000.\nOrder matters inside each folder (sign in first — Postman keeps the session cookie).\nOrigin header is required: the API rejects requests from other sites (CSRF protection).\nVariables: patientEmail / patientPassword (demo patient), staffEmail / staffPassword (your staff account),\ntotpSecret = the key under 'Can't scan? Type this key' on the 2-step setup screen (Postman makes the 6-digit code from it).",
+    "description": "Run against your PC: npm run dev → baseUrl http://localhost:3000.\nOrder matters inside each folder (sign in first — Postman keeps the session cookie).\nOrigin header is required: the API rejects requests from other sites (CSRF protection).\nVariables: patientEmail / patientPassword (demo patient).\nstaffEmail / staffPassword: easiest is the super admin from your .env (SUPER_ADMIN_USERNAME / SUPER_ADMIN_PASSWORD) — password only, no 2-step code.\nIf you use an account with 2-step on, also set totpSecret = the key under 'Can't scan? Type this key' (Postman makes the 6-digit code from it).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -35,6 +35,14 @@
     },
     {
       "key": "patientId",
+      "value": ""
+    },
+    {
+      "key": "needsCode",
+      "value": ""
+    },
+    {
+      "key": "newAdmin",
       "value": ""
     }
   ],
@@ -123,6 +131,54 @@
               }
             }
           }
+        },
+        {
+          "name": "Log a search (anonymous, for Insights)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/log-event",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "log-event"
+              ]
+            },
+            "description": "Anonymous: only the browser session id is kept. Ignored when the browser sends Do Not Track.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"search\",\n  \"label\": \"stress echo\",\n  \"path\": \"/\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('saved', () => pm.expect(pm.response.json().ok).to.eql(true));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Service request (virtual care)",
@@ -1067,7 +1123,7 @@
       "name": "3 · Admin console",
       "item": [
         {
-          "name": "Admin sign in · step 1 (email + password)",
+          "name": "Admin sign in · step 1 (username or email + password)",
           "event": [
             {
               "listen": "test",
@@ -1076,10 +1132,11 @@
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
                   "const j = pm.response.json();",
-                  "pm.test('asks for the 2-step code (not first-time setup)', () => {",
+                  "pm.test('signed in, or asks for the 2-step code', () => {",
                   "  if (j.step === 'setup') throw new Error('2-step is not set up yet: sign in once at /admin in the browser and scan the QR code first.');",
-                  "  pm.expect(j.step).to.eql('code');",
-                  "});"
+                  "  pm.expect(['done', 'code']).to.include(j.step);",
+                  "});",
+                  "pm.collectionVariables.set('needsCode', j.step === 'code' ? '1' : '');"
                 ]
               }
             }
@@ -1120,13 +1177,26 @@
           }
         },
         {
-          "name": "Admin sign in · step 2 (2-step code)",
+          "name": "Admin sign in · step 2 (2-step code — skipped for password-only accounts)",
           "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('signed in as staff', () => pm.expect(pm.response.json().actor).to.eql(pm.variables.get('staffEmail').toLowerCase()));",
+                  "// If this fails with 'code isn't right' right after another run: wait 30 seconds (each code works once)."
+                ]
+              }
+            },
             {
               "listen": "prerequest",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Password-only accounts (like the .env super admin) are already signed in after step 1.",
+                  "if (!pm.collectionVariables.get('needsCode')) { pm.execution.skipRequest(); return; }",
                   "// Makes the 6-digit code from totpSecret (the key shown under 'Can't scan? Type this key' when you set up 2-step).",
                   "const secret = String(pm.variables.get('totpSecret') || '').replace(/\\s/g, '').toUpperCase();",
                   "if (!secret) throw new Error('Set totpSecret (your 2-step key) — see the collection description.');",
@@ -1138,17 +1208,6 @@
                   "const o = parseInt(h.slice(-1), 16);",
                   "const n = (parseInt(h.substr(o * 2, 8), 16) & 0x7fffffff) % 1000000;",
                   "pm.variables.set('totpCode', String(n).padStart(6, '0'));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('signed in as staff', () => pm.expect(pm.response.json().actor).to.eql(pm.variables.get('staffEmail').toLowerCase()));",
-                  "// If this fails with 'code isn't right' right after another run: wait 30 seconds (each code works once)."
                 ]
               }
             }
@@ -1467,7 +1526,7 @@
           }
         },
         {
-          "name": "Staff & roles",
+          "name": "Staff (people, type, features)",
           "event": [
             {
               "listen": "test",
@@ -1476,7 +1535,8 @@
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
                   "const j = pm.response.json();",
-                  "pm.test('6 roles, 19 permissions', () => { pm.expect(j.roles.length).to.eql(6); pm.expect(j.permissions.length).to.eql(19); });"
+                  "pm.test('10 features to choose from', () => pm.expect(j.features.length).to.eql(10));",
+                  "pm.test('every person is a super admin or an admin', () => j.staff.forEach((s) => pm.expect(['super', 'admin']).to.include(s.kind)));"
                 ]
               }
             }
@@ -2017,6 +2077,300 @@
           }
         },
         {
+          "name": "Insights (last 30 days)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/data?view=insights&range=30D",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "data"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "insights"
+                },
+                {
+                  "key": "range",
+                  "value": "30D"
+                }
+              ]
+            },
+            "description": "Anonymous: what people view, search, click and ask Neyu; where they come from."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('totals, daily chart, funnel', () => { pm.expect(j.totals).to.have.property('visitors'); pm.expect(j.days.length).to.be.at.least(28); pm.expect(j.funnel.length).to.eql(3); });",
+                  "pm.test('top searches listed', () => pm.expect(j.searches).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add an admin (Insights only) · API v1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "staff"
+              ]
+            },
+            "description": "Only a super admin can add people. Password left empty = a strong one is made and returned once.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"pm.admin{{$timestamp}}\",\n  \"name\": \"Postman Admin\",\n  \"password\": \"Postman-Pass-2026\",\n  \"kind\": \"admin\",\n  \"features\": [\n    \"insights\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 created', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('admin with Insights', () => { pm.expect(d.kind).to.eql('admin'); pm.expect(d.features).to.include('insights'); });",
+                  "pm.collectionVariables.set('newAdmin', d.username);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add an admin · bad kind → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "staff"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"pm.bad\",\n  \"name\": \"Bad\",\n  \"kind\": \"boss\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));",
+                  "pm.test('validation_error', () => pm.expect(pm.response.json().error.code).to.eql('validation_error'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "New admin signs in (password only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "login"
+              ]
+            },
+            "description": "Signs this Postman session in as the new admin.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{newAdmin}}\",\n  \"password\": \"Postman-Pass-2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('no 2-step needed', () => pm.expect(pm.response.json().step).to.eql('done'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "New admin: menu shows only Insights",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/data?view=boot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "data"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "boot"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('not a super admin', () => pm.expect(j.isSuper).to.eql(false));",
+                  "pm.test('Insights yes, Patients and Audit no', () => { pm.expect(j.nav).to.include('insights'); pm.expect(j.nav).to.not.include('patients'); pm.expect(j.nav).to.not.include('audit'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "New admin: Staff screen → 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/data?view=staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "data"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "staff"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 refused', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Admin sign out",
           "event": [
             {
@@ -2258,7 +2612,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('401', () => pm.response.to.have.status(401));",
-                  "pm.test('does not say which part was wrong', () => pm.expect(pm.response.json().error).to.match(/email or password/));"
+                  "pm.test('does not say which part was wrong', () => pm.expect(pm.response.json().error).to.match(/username or password/));"
                 ]
               }
             }
@@ -2286,7 +2640,7 @@
                 "login"
               ]
             },
-            "description": "One wrong try. 5 in a row lock the account for 15 minutes (npm run staff -- unlock <email>).",
+            "description": "One wrong try. 5 in a row lock a normal account for 15 minutes (npm run staff -- unlock <username>). The .env super admin is never locked; only the per-network limit applies.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"{{staffEmail}}\",\n  \"password\": \"not-the-password\"\n}",
