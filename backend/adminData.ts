@@ -428,6 +428,7 @@ export async function patient360(id: string): Promise<Patient360DTO | null> {
       sessions: { where: { expiresAt: { gt: new Date() } }, orderBy: { lastSeenAt: "desc" }, select: { id: true, userAgent: true, ip: true, lastSeenAt: true } },
       visitors: { select: { id: true, firstSeenAt: true, landingPath: true, userAgent: true, sessionId: true } },
       _count: { select: { labResults: true, symptomChecks: true, conversations: true, assessments: true, labChecks: true } },
+      pushDevices: { select: { platform: true, createdAt: true } },
     },
   });
   if (!p) return null;
@@ -496,7 +497,7 @@ export async function patient360(id: string): Promise<Patient360DTO | null> {
     devices, sessions: p.sessions.map((s) => { const u = parseUA(s.userAgent); return { id: s.id, device: u.device, browser: u.browser, ip: maskIp(s.ip), last: fmtAgo(s.lastSeenAt), active: true }; }),
     labsN: p._count.labResults, aisN: p._count.symptomChecks + p._count.conversations + p._count.assessments + p._count.labChecks,
     healthHidden: !row.consent.wearables, labsHidden: !row.consent.labs,
-    refs: refs.map((r) => refDTO(r, hist.get(r.id))), timeline: tl.slice(0, 80), audit: audits.map(auditDTO), visitorIds: p.visitors.map((v) => v.id),
+    refs: refs.map((r) => refDTO(r, hist.get(r.id))), timeline: tl.slice(0, 80), audit: audits.map(auditDTO), visitorIds: p.visitors.map((v) => v.id), phones: p.pushDevices.map((d) => ({ platform: d.platform === "ios" ? "iPhone" : "Android", since: fmtDate(d.createdAt) })),
   };
 }
 

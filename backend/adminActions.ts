@@ -366,6 +366,15 @@ export async function runAction(b: any, c: Ctx): Promise<Result> {
       await log({ kind: "Account", action: "Confirmed email by hand", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p), reason: how, before: "Email not verified", after: "Email verified" });
       return { ok: true };
     }
+    case "push.test": {
+      // A test notification to the patient's phones (general text only — it can show on a locked screen).
+      const p = await patientOr404(b.patientId);
+      const { patientPush } = await import("@backend/push");
+      const ok = await patientPush(p.id, "account", { title: "NEYU", body: "A test message from your NEYU care team. Notifications are working.", url: "/my-health" });
+      if (!ok) throw new HttpError(409, "This patient hasn't turned on notifications in the NEYU app.");
+      await log({ kind: "Account", action: "Sent test notification", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p) });
+      return { ok: true };
+    }
     case "account.deactivate": {
       const p = await patientOr404(b.patientId);
       const next = p.accountStatus === "deactivated" ? "active" : "deactivated";

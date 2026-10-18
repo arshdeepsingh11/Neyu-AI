@@ -79,6 +79,7 @@ export interface Patient360DTO extends Omit<PatientRow, "devices"> {
   protocol: ProtocolDTO[]; devices: DeviceDTO[]; sessions: SessionDTO[];
   labsN: number; aisN: number; healthHidden: boolean; labsHidden: boolean;
   refs: RefDTO[]; timeline: TimelineDTO[]; audit: AuditDTO[]; visitorIds: string[];
+  phones: { platform: string; since: string }[]; // NEYU app installs with notifications on
 }
 
 export interface HealthRevealDTO {
