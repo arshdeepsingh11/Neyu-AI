@@ -20,14 +20,15 @@ import Referrals from "./screens/Referrals";
 import Requests from "./screens/Requests";
 import AiActivity from "./screens/AiActivity";
 import Analytics from "./screens/Analytics";
+import Insights from "./screens/Insights";
 import AuditLog from "./screens/AuditLog";
 import Settings from "./screens/Settings";
 import { NeyuMark } from "@/components/brand/NeyuLogo";
 
 const LOCK_MIN = 15;
 type Route = { s: string; id: string | null; tab: string };
-const SLUG: Record<string, string> = { overview: "overview", inbox: "inbox", patients: "patients", patient: "patients", visitors: "visitors", visitor: "visitors", referrals: "referrals", requests: "service-requests", ai: "ai-activity", analytics: "analytics", audit: "audit-log", settings: "settings" };
-const FROM_SLUG: Record<string, string> = { overview: "overview", inbox: "inbox", patients: "patients", visitors: "visitors", referrals: "referrals", "service-requests": "requests", "ai-activity": "ai", analytics: "analytics", "audit-log": "audit", settings: "settings" };
+const SLUG: Record<string, string> = { overview: "overview", inbox: "inbox", patients: "patients", patient: "patients", visitors: "visitors", visitor: "visitors", referrals: "referrals", requests: "service-requests", ai: "ai-activity", analytics: "analytics", insights: "insights", audit: "audit-log", settings: "settings" };
+const FROM_SLUG: Record<string, string> = { overview: "overview", inbox: "inbox", patients: "patients", visitors: "visitors", referrals: "referrals", "service-requests": "requests", "ai-activity": "ai", analytics: "analytics", insights: "insights", "audit-log": "audit", settings: "settings" };
 
 function parseHash(): Route {
   const [slug, id, tab] = (typeof window === "undefined" ? "" : window.location.hash.replace(/^#\/?/, "")).split("/").map(decodeURIComponent);
@@ -173,6 +174,14 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
     range, rangeParams, menu, setMenu,
   };
 
+  // Landing page: an admin without Overview starts on the first screen they have.
+  const firstScreen = boot?.nav?.[0];
+  const routeKey = route.s === "patient" ? "patients" : route.s === "visitor" ? "visitors" : route.s;
+  useEffect(() => {
+    if (!boot?.nav || !firstScreen || boot.nav.includes(routeKey)) return;
+    if (!window.location.hash || window.location.hash === "#/overview") go({ s: firstScreen });
+  }, [boot?.nav, firstScreen, routeKey, go]);
+
   if (!authed) return <div className="anra-admin"><SignIn onSignedIn={(a) => { setActor(a); setAuthed(true); setLocked(false); lastAct.current = Date.now(); refresh(); }} /></div>;
 
   const queueN = boot?.queueCount ?? 0;
@@ -182,10 +191,11 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
   const nav: ([string, string, string, number?, boolean?] | ["G", string])[] = ([
     ["overview", "Overview", "ph-squares-four"], ["inbox", "Inbox", "ph-tray", queueN], ["G", "People"],
     ["patients", "Patients", "ph-user", 0, true], ["visitors", "Visitors", "ph-user-circle-dashed", 0, true],
-    ["referrals", "Referrals", "ph-arrow-square-in"], ["requests", "Service requests", "ph-calendar-plus"], ["ai", "AI Activity", "ph-sparkle"], ["analytics", "Analytics", "ph-chart-line"], ["audit", "Audit Log", "ph-shield-check"], ["settings", "Settings", "ph-gear-six"],
+    ["referrals", "Referrals", "ph-arrow-square-in"], ["requests", "Service requests", "ph-calendar-plus"], ["ai", "AI Activity", "ph-sparkle"], ["insights", "Insights", "ph-lightbulb"], ["analytics", "Analytics", "ph-chart-line"], ["audit", "Audit Log", "ph-shield-check"], ["settings", "Settings", "ph-gear-six"],
   ] as ([string, string, string, number?, boolean?] | ["G", string])[]).filter((n) => n[0] === "G" ? allowed("patients") || allowed("visitors") : allowed(n[0]));
   const screenKey = R.s === "patient" ? "patients" : R.s === "visitor" ? "visitors" : R.s;
   const blocked = !!boot?.nav && !boot.nav.includes(screenKey);
+
   const actorInit = actor.split("@")[0].replace(/[^a-z]/gi, " ").trim().split(/\s+/).map((x) => x[0] || "").join("").slice(0, 2).toUpperCase() || "AD";
   const notifs = boot ? [
     ...(boot.emergencyCount ? [{ title: `${boot.emergencyCount} emergency-flagged symptom check${boot.emergencyCount > 1 ? "s" : ""}`, sub: "Needs review now", icon: "ph ph-warning-circle", fg: T.peachInk, bg: T.peach, run: () => { setInboxTab("urgent"); go({ s: "inbox" }); } }] : []),
@@ -195,7 +205,7 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
   ] : [];
   const notifSig = notifs.map((n) => n.title).join("|");
   const notifN = notifSig && notifSig !== notifSeen ? notifs.filter((n) => n.fg === T.peachInk || n.title.startsWith("New referral")).length : 0;
-  const showRange = (R.s === "overview" || R.s === "analytics") && !blocked;
+  const showRange = (R.s === "overview" || R.s === "analytics" || R.s === "insights") && !blocked;
   const isActive = (k: string) => R.s === k || (k === "patients" && R.s === "patient") || (k === "visitors" && R.s === "visitor");
 
   return (
@@ -301,6 +311,7 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
                 {R.s === "requests" && <Requests />}
                 {R.s === "ai" && <AiActivity />}
                 {R.s === "analytics" && <Analytics />}
+                {R.s === "insights" && <Insights />}
                 {R.s === "audit" && <AuditLog />}
                 {R.s === "settings" && <Settings tab={settingsTab} setTab={setSettingsTab} />}
               </>}
