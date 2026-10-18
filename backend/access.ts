@@ -76,7 +76,7 @@ export const ACTION_PERMS: Record<string, string[] | null> = {
   "appt.save": ["appointments.manage"], "appt.complete": ["appointments.manage"], "appt.cancel": ["appointments.manage"],
   "account.unlock": ["patients.record.update"],
   "account.resend": ["patients.record.update"],
-  "account.verify": ["patients.record.update"],
+  "account.verify": ["patients.record.update"], "push.test": ["patients.record.update"],
   "session.revoke": ["patients.record.update"],
   "account.deactivate": ["patients.record.update"],
   "account.delete": ["privacy.deletion.manage"],
