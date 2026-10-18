@@ -23,11 +23,13 @@ export async function runJob(name: JobName | string, data: any): Promise<unknown
     }
     case "sessions.cleanup": {
       const now = new Date();
-      const [staff, patients] = await Promise.all([
+      const [staff, patients, events] = await Promise.all([
         prisma.staffSession.deleteMany({ where: { expiresAt: { lt: now } } }),
         prisma.patientSession.deleteMany({ where: { expiresAt: { lt: now } } }),
+        // Insights keeps anonymous search/click signals for 13 months.
+        prisma.siteEvent.deleteMany({ where: { createdAt: { lt: new Date(now.getTime() - 396 * 86400_000) } } }),
       ]);
-      return { staffSessions: staff.count, patientSessions: patients.count };
+      return { staffSessions: staff.count, patientSessions: patients.count, siteEvents: events.count };
     }
     case "daily": {
       const { runDaily } = await import("@backend/daily");
