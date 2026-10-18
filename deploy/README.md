@@ -59,3 +59,12 @@ pm2 startup   # follow the printed command, so it starts after reboot
 
 ## Updates later
 `cd /var/www/neyu && bash deploy/deploy.sh`
+
+## 7. Performance (Phase 5 — for the PostgreSQL + Redis version)
+Sized for up to 5,000 visitors a day (about 100 people at once in the busiest hour).
+1. PostgreSQL settings: `sudo cp deploy/postgresql-neyu.conf /etc/postgresql/16/main/conf.d/neyu.conf && sudo systemctl restart postgresql`, then `sudo -u postgres psql -d neyu -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"`.
+2. Redis: `sudo apt install -y redis-server` and `REDIS_URL=redis://127.0.0.1:6379` in `.env`.
+3. One app copy per CPU core: `NEYU_INSTANCES=max` in `.env` (needs Redis), then `pm2 delete neyu-health && pm2 start deploy/ecosystem.config.js && pm2 save`. Later updates use `pm2 reload` (no downtime).
+4. Nginx: the new `deploy/nginx-neyuhealth.conf` (keep-alive to the app, caching for pictures/videos, sign-in rate guard, real visitor address).
+5. Monitoring: `deploy/MONITORING.md` (uptime check on `/api/v1/health`, optional `/api/v1/metrics`).
+6. Load test on a staging copy (never the live database): `loadtest/README.md`.
