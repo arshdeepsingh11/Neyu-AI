@@ -45,3 +45,5 @@ COMMANDS.txt
 
 # Local file storage (patient reports, exports) — never commit
 /storage/
+
+commit-phase*.ps1
