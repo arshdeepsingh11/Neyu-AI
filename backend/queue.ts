@@ -21,7 +21,8 @@ export type JobName =
   | "sessions.cleanup"     // expired staff + patient sessions
   | "daily"                // wearables sync, briefs, reminders (was only /api/cron/daily)
   | "stats.warm"           // { ranges } dashboard numbers ready in the cache (Phase 5)
-  | "visitors.backfill";   // { sinceDays } visitor rows for older anonymous activity
+  | "visitors.backfill"    // { sinceDays } visitor rows for older anonymous activity
+  | "push.send";           // { patientId, title, body, url } phone notification (Phase 6)
 
 const g = globalThis as unknown as { neyuQueue?: Queue; neyuQueueConn?: IORedis };
 
