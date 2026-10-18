@@ -193,6 +193,7 @@ model Patient {
   assessments      LongevityAssessment[]
   labChecks        LabResultCheck[]
   visitors         Visitor[]
+  pushDevices      PushDevice[]
   bpReadings       BpReading[]
   lifestyleLogs    LifestyleLog[]
   careGiven        CareLink[]            @relation("CareOwner")
@@ -513,6 +514,23 @@ model Visitor {
 // Links from anrahealth.ca / My Health Space to other sites (clicks only).
 // Anonymous website interest signals for Insights (searches and clicks). No names, no
 // patient ids — only the browser session id, so visitors can't be identified.
+// Phones that receive NEYU push notifications (Phase 6). One row per app install; the
+// token moves to whoever signs in on that phone. Removed when the token stops working.
+model PushDevice {
+  id         String   @id @default(cuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  platform   String   // ios | android
+  token      String   @unique
+  appVersion String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  lastSentAt DateTime?
+  lastError  String?
+
+  @@index([patientId])
+}
+
 // Daily totals worked out from raw activity by the background worker (Phase 5).
 // Dashboards read these small rows instead of millions of raw rows. Kept after the raw
 // rows are deleted (13 months), so long-term trends stay.
