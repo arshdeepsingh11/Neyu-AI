@@ -1,8 +1,9 @@
 // NEYU — staff accounts from the command line (your PC or the server).
 //
 //   npm run staff -- list
-//   npm run staff -- add <email> "<Full name>" <role>     role: super_admin | org_admin | clinic_manager | care_staff | physician | support
-//   npm run staff -- reset-password <email>               prints a new password once, signs them out everywhere
+//   npm run staff -- add <username> "<Full name>"          adds a SUPER ADMIN (admins are added in the console)
+//   npm run staff -- set-password <username> "<password>"
+//   npm run staff -- reset-password <username>             prints a new strong password once, signs them out everywhere
 //   npm run staff -- reset-2step <email>                  next sign-in shows a new QR code
 //   npm run staff -- unlock <email>                       clears "too many wrong passwords"
 //   npm run staff -- suspend <email>  |  activate <email>
@@ -52,22 +53,35 @@ async function main() {
       const rows = await prisma.staffUser.findMany({ orderBy: { createdAt: "asc" }, include: { memberships: { include: { role: true } } } });
       if (!rows.length) return console.log("\nNo staff yet. Run: npm run db:seed\n");
       console.log("");
-      for (const s of rows) console.log(`${s.email.padEnd(34)} ${s.status.padEnd(10)} 2-step: ${s.mfaEnabledAt ? "on " : "off"}  roles: ${s.memberships.map((m) => m.role.key + (m.status !== "active" ? "(off)" : "")).join(", ") || "—"}  last sign-in: ${s.lastLoginAt ? s.lastLoginAt.toISOString().slice(0, 16).replace("T", " ") : "never"}`);
+      for (const s of rows) {
+        const type = s.memberships.some((m) => m.status === "active" && m.role.key === "super_admin") ? "super admin" : s.memberships.some((m) => m.status === "active") ? "admin" : "no access";
+        const twoStep = !s.mfaRequired ? "password only" : s.mfaEnabledAt ? "2-step on" : "2-step at next sign-in";
+        console.log(`${s.email.padEnd(32)} ${type.padEnd(12)} ${s.status.padEnd(10)} ${twoStep.padEnd(22)} last sign-in: ${s.lastLoginAt ? s.lastLoginAt.toISOString().slice(0, 16).replace("T", " ") : "never"}`);
+      }
       console.log("");
       break;
     }
     case "add": {
-      const [name, roleKey] = rest;
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail("Give a valid email.");
-      if (!name || !roleKey) fail('Usage: npm run staff -- add <email> "<Full name>" <role>');
-      const role = await prisma.role.findFirst({ where: { key: roleKey, orgId: null } });
-      if (!role) fail(`Unknown role "${roleKey}". Use: super_admin, org_admin, clinic_manager, care_staff, physician, support`);
+      // Emergency use: adds a SUPER ADMIN. Admins with chosen features are added in the console (Settings → Staff).
+      const [name] = rest;
+      if (!email || !/^([a-z0-9][a-z0-9._-]{2,39}|[^\s@]+@[^\s@]+\.[^\s@]+)$/.test(email)) fail("Give a username (3–40 letters/numbers) or an email.");
+      if (!name) fail('Usage: npm run staff -- add <username> "<Full name>"');
       if (await prisma.staffUser.findUnique({ where: { email } })) fail(`${email} already exists.`);
       const pw = strongPassword();
-      const s = await prisma.staffUser.create({ data: { email, name, passwordHash: await hashPassword(pw), status: "active" } });
-      await prisma.membership.create({ data: { staffId: s.id, orgId: "org_neyu", roleId: role.id } });
-      await log("create", s, { role: roleKey });
-      console.log(`\n✓ Added ${email} as ${role.name}.\n  Password (shown once — give it to them privately):\n     ${pw}\n  On first sign-in they scan a QR code for their 2-step code.\n`);
+      const s = await prisma.staffUser.create({ data: { email, name, passwordHash: await hashPassword(pw), status: "active", mfaRequired: false } });
+      await prisma.membership.create({ data: { staffId: s.id, orgId: "org_neyu", roleId: "role_super_admin" } });
+      await log("create", s, { role: "super_admin" });
+      console.log(`\n✓ Added super admin ${email}.\n  Password (shown once — give it privately):\n     ${pw}\n  Change it after signing in (profile menu → Change password).\n`);
+      break;
+    }
+    case "set-password": {
+      const s = await staff();
+      const pw = rest[0] || "";
+      if (pw.length < 8) fail('Usage: npm run staff -- set-password <username> "<new password, 8+ characters>"');
+      await prisma.staffUser.update({ where: { id: s.id }, data: { passwordHash: await hashPassword(pw), failedLogins: 0, lockedUntil: null } });
+      await prisma.staffSession.deleteMany({ where: { staffId: s.id } });
+      await log("update", s, { change: "password set" });
+      console.log(`\n✓ Password changed for ${email}. They were signed out everywhere.\n`);
       break;
     }
     case "reset-password": {
@@ -107,8 +121,9 @@ async function main() {
       console.log(`
 NEYU staff accounts
   npm run staff -- list
-  npm run staff -- add <email> "<Full name>" <role>
-  npm run staff -- reset-password <email>
+  npm run staff -- add <username> "<Full name>"          adds a SUPER ADMIN (admins: console → Settings → Staff)
+  npm run staff -- set-password <username> "<password>"
+  npm run staff -- reset-password <username>              makes a strong one
   npm run staff -- reset-2step <email>
   npm run staff -- unlock <email>
   npm run staff -- suspend <email>   |   activate <email>
