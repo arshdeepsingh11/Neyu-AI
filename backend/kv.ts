@@ -54,6 +54,14 @@ export const kv = {
 
   del: (key: string) => safe(async (r) => { await r.del(PREFIX + key); }, () => { mem.delete(key); }),
 
+  /** Sets the key only if it doesn't exist yet. True = this caller got it (a simple lock). */
+  setNX: (key: string, value: string, ttlSec: number) =>
+    safe(async (r) => (await r.set(PREFIX + key, value, "EX", ttlSec, "NX")) === "OK", () => {
+      if (memGet(key) !== null) return false;
+      mem.set(key, { v: value, exp: Date.now() + ttlSec * 1000 });
+      return true;
+    }),
+
   /** Adds 1 and returns the new count; the key expires ttlSec after its first increment. */
   incr: (key: string, ttlSec: number) =>
     safe(async (r) => {
@@ -68,11 +76,30 @@ export const kv = {
     }),
 };
 
-/** Cache a slow read (e.g. analytics) for ttlSec. Values must be JSON. */
+/** Cache a slow read (e.g. analytics) for ttlSec. Values must be JSON.
+ *  Only one caller computes a missing value; the others wait for it (no stampede of
+ *  identical heavy queries when many people open the same dashboard at once). */
 export async function cached<T>(key: string, ttlSec: number, load: () => Promise<T>): Promise<T> {
-  const hit = await kv.get("cache:" + key);
-  if (hit) { try { return JSON.parse(hit) as T; } catch { /* reload */ } }
-  const v = await load();
-  await kv.set("cache:" + key, JSON.stringify(v), ttlSec);
-  return v;
+  const read = async () => { const hit = await kv.get("cache:" + key); if (!hit) return undefined; try { return JSON.parse(hit) as T; } catch { return undefined; } };
+  const first = await read();
+  if (first !== undefined) return first;
+  if (!(await kv.setNX("lock:" + key, "1", 60))) {
+    for (let waited = 0; waited < 30_000; waited += 250) {
+      await new Promise((r) => setTimeout(r, 250));
+      const v = await read();
+      if (v !== undefined) return v;
+    }
+  }
+  try {
+    const v = await load();
+    await kv.set("cache:" + key, JSON.stringify(v), ttlSec);
+    return v;
+  } finally {
+    await kv.del("lock:" + key);
+  }
+}
+
+/** Stores a freshly computed value (used by the background job that keeps dashboards warm). */
+export async function putCached(key: string, ttlSec: number, value: unknown) {
+  await kv.set("cache:" + key, JSON.stringify(value), ttlSec);
 }
