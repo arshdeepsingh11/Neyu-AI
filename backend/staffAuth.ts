@@ -7,10 +7,10 @@
 // Roles and permissions come from Membership → Role → RolePermission (see schema.prisma).
 // Scope per permission: "full", "reason" (break-glass: a reason must be recorded) or "own".
 
-import { randomBytes } from "crypto";
+import { randomBytes, timingSafeEqual, createHash } from "crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@backend/db";
-import { HttpError, sha256, verifyPassword, burnPasswordCheck } from "@backend/patientAuth";
+import { HttpError, sha256, verifyPassword, burnPasswordCheck, hashPassword } from "@backend/patientAuth";
 import { encrypt, decrypt } from "@backend/oauth";
 import { newTotpSecret, verifyTotp, otpauthUri } from "@backend/totp";
 import { kv } from "@backend/kv";
@@ -54,30 +54,89 @@ const TRIES_KEY = (sessionId: string) => `totp:tries:${sessionId}`;
 export interface PasswordResult {
   ok: boolean;
   reason?: "unknown" | "bad_password" | "locked" | "suspended"; // when ok is false
-  step?: "code" | "setup"; // when ok is true
+  step?: "code" | "setup" | "done"; // when ok is true ("done" = no 2-step code needed for this person)
   staffId?: string;
   email: string;
   secret?: string;
   otpauth?: string;
 }
 
+// ── Super admin from the server settings (.env) ─────────────────────────────
+//   SUPER_ADMIN_USERNAME=arsh           (a username or an email)
+//   SUPER_ADMIN_PASSWORD=…              (8+ characters; the login checks this value)
+//   SUPER_ADMIN_NAME="Arsh Singh"       (optional)
+//   SUPER_ADMIN_2STEP=on                (optional — also ask for the authenticator code)
+// This account always exists and can't be suspended, demoted or locked out from the console.
+// It's the way back in if every other admin is lost. Change the password in .env, restart the app.
+export function envSuperAdmin() {
+  const username = normalizeStaffEmail(process.env.SUPER_ADMIN_USERNAME || "");
+  const password = process.env.SUPER_ADMIN_PASSWORD || "";
+  if (!username || password.length < 8) return null;
+  return { username, password, name: (process.env.SUPER_ADMIN_NAME || "Super Admin").slice(0, 80), twoStep: process.env.SUPER_ADMIN_2STEP === "on" };
+}
+export const isEnvSuperAdmin = (email: string) => envSuperAdmin()?.username === email;
+
+let envSynced = 0;
+/** Makes sure the .env super admin exists in the database with the right password and role. */
+async function syncEnvSuperAdmin(force = false) {
+  const env = envSuperAdmin();
+  if (!env || (!force && Date.now() - envSynced < 60_000)) return;
+  let s = await prisma.staffUser.findUnique({ where: { email: env.username } });
+  if (!s) s = await prisma.staffUser.create({ data: { email: env.username, name: env.name, passwordHash: await hashPassword(env.password), status: "active", mfaRequired: env.twoStep } });
+  else {
+    const data: Record<string, unknown> = {};
+    if (!(await verifyPassword(env.password, s.passwordHash))) data.passwordHash = await hashPassword(env.password);
+    if (s.status !== "active") data.status = "active";
+    if (s.mfaRequired !== env.twoStep) data.mfaRequired = env.twoStep;
+    if (s.name !== env.name) data.name = env.name;
+    if (Object.keys(data).length) s = await prisma.staffUser.update({ where: { id: s.id }, data });
+  }
+  await prisma.membership.upsert({
+    where: { staffId_orgId_roleId: { staffId: s.id, orgId: "org_neyu", roleId: "role_super_admin" } },
+    update: { status: "active" },
+    create: { staffId: s.id, orgId: "org_neyu", roleId: "role_super_admin" },
+  });
+  envSynced = Date.now();
+}
+const sameSecret = (a: string, b: string) => {
+  const x = createHash("sha256").update(a).digest(), y = createHash("sha256").update(b).digest();
+  return timingSafeEqual(x, y);
+};
+
 export async function staffExists(email: string) {
+  if (isEnvSuperAdmin(email)) { await syncEnvSuperAdmin(); return true; }
   return !!(await prisma.staffUser.findUnique({ where: { email }, select: { id: true } }));
 }
 
 export async function startStaffLogin(email: string, password: string, meta: { ip?: string; userAgent?: string }): Promise<PasswordResult> {
+  const env = isEnvSuperAdmin(email) ? envSuperAdmin() : null;
+  // The right .env password always re-syncs at once (row deleted, suspended in the DB or
+  // membership removed → fixed on the next sign-in, not after the 60-second cache).
+  if (env) await syncEnvSuperAdmin(sameSecret(password, env.password));
   const s = await prisma.staffUser.findUnique({ where: { email } });
   if (!s) { await burnPasswordCheck(password); return { ok: false, reason: "unknown", email }; }
-  if (s.lockedUntil && s.lockedUntil > new Date()) return { ok: false, reason: "locked", staffId: s.id, email };
+  // The .env super admin is never locked (nobody can lock the owner out by guessing);
+  // the per-IP sign-in limit still applies to it.
+  if (!env && s.lockedUntil && s.lockedUntil > new Date()) return { ok: false, reason: "locked", staffId: s.id, email };
   if (s.status !== "active") { await burnPasswordCheck(password); return { ok: false, reason: "suspended", staffId: s.id, email }; }
 
-  if (!(await verifyPassword(password, s.passwordHash))) {
+  const passwordOk = env ? sameSecret(password, env.password) : await verifyPassword(password, s.passwordHash);
+  if (!passwordOk && env) return { ok: false, reason: "bad_password", staffId: s.id, email };
+  if (!passwordOk) {
     const n = s.failedLogins + 1;
     await prisma.staffUser.update({
       where: { id: s.id },
       data: n >= MAX_FAILED ? { failedLogins: 0, lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60_000) } : { failedLogins: n },
     });
     return { ok: false, reason: n >= MAX_FAILED ? "locked" : "bad_password", staffId: s.id, email };
+  }
+
+  // No 2-step code for this person (a super admin chose "password only") → signed in now.
+  if (!s.mfaRequired) {
+    await createSession(s.id, true, meta);
+    await prisma.staffUser.update({ where: { id: s.id }, data: { lastLoginAt: new Date(), failedLogins: 0, lockedUntil: null } });
+    legacyCache = null;
+    return { ok: true, step: "done", staffId: s.id, email };
   }
 
   // Password OK → a short "pending" session that only allows entering the 2-step code.
@@ -208,16 +267,16 @@ export async function checkStaffPassword(staffId: string, password: string) {
 }
 
 // ── Old shared password (switch-off) ────────────────────────────────────────
-// The shared ADMIN_PASSWORD keeps working only until the first super admin has
-// signed in with their own account + 2-step code. After that it is refused, and
-// every old shared-password session stops working. Force it off any time with
-// ADMIN_LEGACY_LOGIN=off.
+// The shared ADMIN_PASSWORD keeps working only while no super admin exists yet: it is
+// refused as soon as SUPER_ADMIN_USERNAME is set in .env, or a super admin has signed in
+// with their own account. Then every old shared-password session stops working too.
+// Force it off any time with ADMIN_LEGACY_LOGIN=off.
 let legacyCache: { at: number; on: boolean } | null = null;
 export async function legacyLoginAllowed(): Promise<boolean> {
-  if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_LEGACY_LOGIN === "off") return false;
+  if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_LEGACY_LOGIN === "off" || envSuperAdmin()) return false;
   if (legacyCache && Date.now() - legacyCache.at < 60_000) return legacyCache.on;
   const ready = await prisma.staffUser.count({
-    where: { status: "active", mfaEnabledAt: { not: null }, memberships: { some: { status: "active", role: { key: "super_admin" } } } },
+    where: { status: "active", lastLoginAt: { not: null }, memberships: { some: { status: "active", role: { key: "super_admin" } } } },
   });
   legacyCache = { at: Date.now(), on: ready === 0 };
   return legacyCache.on;
