@@ -77,7 +77,7 @@ export default function Settings({ tab, setTab }: { tab: string; setTab: (t: str
               <h2 style={{ ...S.h2, margin: "0 0 4px" }}>Data retention</h2>
               <p style={{ margin: "0 0 12px", fontSize: 13.5, color: T.faint }}>Configured by the clinic owner. Changes require the Owner role (Phase 2).</p>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}><tbody>
-                {[["Clinical records", "Retained per clinic policy after last visit"], ["Audit log", "Append-only · never deleted by staff"], ["Anonymous visitor activity", "Kept until merged or expired per policy"], ["Wearable data", "Stops syncing when consent is withdrawn"], ["Deleted accounts", "Sign-in removed at once; records kept for the retention period"]].map(([k, v]) => <tr key={k}><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}` }}>{k}</td><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}`, color: T.ink2 }}>{v}</td></tr>)}
+                {[["Clinical records", "Retained per clinic policy after last visit"], ["Audit log", "Append-only · never deleted by staff"], ["Anonymous page views, searches and clicks", "Kept 13 months, then deleted automatically"], ["Wearable data", "Stops syncing when consent is withdrawn"], ["Deleted accounts", "Sign-in removed at once; records kept for the retention period"]].map(([k, v]) => <tr key={k}><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}` }}>{k}</td><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}`, color: T.ink2 }}>{v}</td></tr>)}
               </tbody></table>
             </div>
           )}
