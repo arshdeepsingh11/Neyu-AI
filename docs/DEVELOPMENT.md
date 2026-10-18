@@ -87,3 +87,12 @@ API reference: `GET /api/v1/openapi.json` (OpenAPI 3.1) · health: `GET /api/v1/
 - Health: `GET /api/v1/health` (503 when the database is down). Metrics: `GET /api/v1/metrics` with `METRICS_TOKEN`.
 - Load test with a year of test data: `loadtest/README.md`.
 
+## 9 · Phone app (Phase 6)
+
+- App project and publishing steps: `mobile/README.md`. Cloud builds: `.github/workflows/mobile-android.yml`, `mobile-ios.yml`.
+- To try the app against your PC: `cd mobile && npm run target -- pc <your IPv4> && npm run sync`, then build (Android Studio or the cloud).
+- Website side: `src/lib/native/` (bridge, push, lock, health, files) and `src/components/NativeShell.tsx`. On the website every helper does nothing.
+- Testing app features in a normal browser: set `window.NeyuNativeMock = { platform: "ios" | "android", plugins: { … } }` before the page loads (Playwright `addInitScript`).
+- Push needs `FIREBASE_SERVICE_ACCOUNT` (Android) and/or `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID` (iPhone). Without them nothing is sent.
+  For tests, `FCM_TOKEN_URL`, `FCM_ENDPOINT_BASE` and `APNS_HOST` point the server at mock push services.
+- Apple Health / Health Connect data → daily values: `src/lib/native/healthMap.ts` (pure functions, unit-tested).
