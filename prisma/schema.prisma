@@ -502,6 +502,22 @@ model Visitor {
 }
 
 // Links from anrahealth.ca / My Health Space to other sites (clicks only).
+// Anonymous website interest signals for Insights (searches and clicks). No names, no
+// patient ids — only the browser session id, so visitors can't be identified.
+model SiteEvent {
+  id        String   @id @default(cuid())
+  sessionId String
+  type      String // search | click
+  label     String // search words or the button/link text
+  path      String // page where it happened
+  target    String? // link destination (clicks)
+  device    String? // mobile | desktop
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([createdAt(ops: TimestampMinMaxOps)], type: Brin)
+}
+
 model OutboundClick {
   id        String   @id @default(cuid())
   sessionId String
@@ -887,6 +903,7 @@ model StaffUser {
   passwordHash String
   mfaSecretEnc String?
   mfaEnabledAt DateTime?
+  mfaRequired  Boolean   @default(true) // false = password only (chosen by a super admin per person)
   status       String    @default("active") // invited | active | suspended
   lastLoginAt  DateTime?
   failedLogins Int       @default(0)
