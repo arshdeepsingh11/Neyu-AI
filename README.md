@@ -153,10 +153,11 @@ pie showData
 | Suite | Checks | Covers |
 |---|---:|---|
 | Staff sign-in | 38 | passwords, 2-step codes, lock-outs, replay protection, old shared password switch-off |
-| Phase 3 platform | 103 | roles, break-glass, staff management, audit, privacy, storage, Redis, worker, API v1 |
+| Phase 3 platform | 101 | break-glass, staff management, audit, privacy, storage, Redis, worker, API v1 |
+| Phase 4 admin & insights | 78 | .env super admin, admins with chosen features, live access changes, Insights, SEO |
 | Patient API | 80 | My Health Space end to end |
-| Postman / Newman | 72 | 53 requests across website, patient, admin and API v1 |
-| **Total** | **293** | all passing |
+| Postman / Newman | 86 | 59 requests across website, patient, admin and API v1 |
+| **Total** | **383** | all passing |
 
 ## ✦ Roadmap
 
@@ -166,11 +167,11 @@ pie showData
 | 1 · System design | Architecture for millions of users | ✅ Done |
 | 2 · Database | PostgreSQL 16, migrations, import, seed | ✅ Done |
 | 3 · Core backend | Staff sign-in + 2-step, roles, break-glass, audit, privacy, file storage, Redis, worker, API v1 | ✅ Done |
-| 4 · Legal pages | Privacy policy, terms, AI notice | ⏭ Next |
-| 5 · Admin dashboards | Super admin · organization admin · care staff · physician | ◻ Planned |
-| 6 · Performance | Load balancing, connection pooling, partitioning | ◻ Planned |
-| 7 · Mobile app | iOS & Android | ◻ Planned |
-| 8 · Devices | Apple Health · Health Connect | ◻ Planned |
+| 4 · Admin dashboards | Super admin + admins with chosen features, Insights, SEO / AEO / GEO on every page | ✅ Done |
+| 5 · Performance | Load balancing, connection pooling, partitioning | ⏭ Next |
+| 6 · Mobile app | iOS & Android | ◻ Planned |
+| 7 · Devices | Apple Health · Health Connect | ◻ Planned |
+| 8 · Legal pages | Privacy policy, terms, AI notice | ◻ Planned |
 | 9 · Go live | Production rollout with DevOps | ◻ Planned |
 
 ## ✦ Stack

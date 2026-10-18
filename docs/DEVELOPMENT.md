@@ -41,13 +41,21 @@ The background worker starts inside the app automatically. To run it on its own:
 
 ## 5 · Staff accounts
 
+Two kinds of people sign in at `/admin`:
+
+- **Super admin** — everything, including adding people. Opening a patient's record still asks for a reason.
+- **Admin** — only the features a super admin ticks for them (Overview, Inbox, Patients, Patient records, Edit records, Referrals, Service requests, Insights, Reports, AI activity).
+
+The main super admin lives in `.env` (`SUPER_ADMIN_USERNAME`, `SUPER_ADMIN_PASSWORD`, optional `SUPER_ADMIN_NAME`, `SUPER_ADMIN_2STEP=on`). It is created on first sign-in, can't be locked out or edited in the console, and switches off the old shared `ADMIN_PASSWORD` sign-in. Everyone else is added in **Settings → Staff → Add person** (username + password; 2-step optional).
+
 ```bash
 npm run staff -- list
-npm run staff -- add <email> "<Full name>" <role>      # super_admin | org_admin | clinic_manager | care_staff | physician | support
-npm run staff -- reset-password <email>
-npm run staff -- reset-2step <email>
-npm run staff -- unlock <email>
-npm run staff -- suspend <email> | activate <email>
+npm run staff -- add <username> "<Full name>"            # emergency: adds a super admin, prints a password once
+npm run staff -- set-password <username> "<password>"
+npm run staff -- reset-password <username>
+npm run staff -- reset-2step <username>
+npm run staff -- unlock <username>
+npm run staff -- suspend <username> | activate <username>
 ```
 
 ## 6 · Files
@@ -64,9 +72,11 @@ npm run storage:move
 ```bash
 npx newman run postman/NEYU-API.postman_collection.json \
   --env-var patientPassword=<demo patient password> \
-  --env-var staffPassword=<your staff password> \
-  --env-var totpSecret=<key under "Can't scan? Type this key"> \
+  --env-var staffEmail=<SUPER_ADMIN_USERNAME> \
+  --env-var staffPassword=<SUPER_ADMIN_PASSWORD> \
   --working-dir .
 ```
+
+Accounts with 2-step on also need `--env-var totpSecret=<key under "Can't scan? Type this key">`.
 
 API reference: `GET /api/v1/openapi.json` (OpenAPI 3.1) · health: `GET /api/v1/health`.
