@@ -9,11 +9,11 @@ import { adminLog } from "@backend/adminAudit";
 import { clientMeta } from "@backend/patientAuth";
 import { toResponse, HttpError, NO_STORE } from "@backend/apiHelpers";
 import * as data from "@backend/adminData";
-import { backfillVisitors } from "@backend/visitors";
 import { assertAccess, permsFor, VIEW_PERMS, ReasonRequired } from "@backend/access";
 import { staffView } from "@backend/staffAdmin";
 import { platformAudit, auditStats } from "@backend/auditData";
 import { insights } from "@backend/siteInsights";
+import { statsCache } from "@backend/statsWarm";
 import { privacyAdminView } from "@backend/privacy";
 import { cached, kv } from "@backend/kv";
 import { storage } from "@backend/storage";
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
         break;
       }
       case "inbox": out = { queue: await data.loadQueue() }; break;
-      case "analytics": out = await cached(`analytics:${range}:${from}:${to}`, 60, () => data.analytics(range, from, to)); break;
+      case "analytics": { const c = statsCache("analytics", range, from, to); out = await cached(c.key, c.ttl, () => data.analytics(range, from, to)); break; }
       case "patients": out = { rows: await data.patientsList() }; break;
       case "patient": {
         const p = await data.patient360(id);
@@ -70,7 +70,6 @@ export async function GET(req: Request) {
         break;
       }
       case "visitors": {
-        await backfillVisitors(); // older activity recorded before visitor records existed
         out = { rows: await data.visitorsList() };
         break;
       }
@@ -106,9 +105,9 @@ export async function GET(req: Request) {
         out = e;
         break;
       }
-      case "insights": out = await cached(`insights:${range}:${from}:${to}`, 60, () => insights(range, from, to)); break;
+      case "insights": { const c = statsCache("insights", range, from, to); out = await cached(c.key, c.ttl, () => insights(range, from, to)); break; }
       case "audit-platform": out = await platformAudit(q); break;
-      case "audit-stats": out = await auditStats(); break;
+      case "audit-stats": out = await cached("audit-stats", 60, () => auditStats()); break;
       case "staff": out = await staffView(admin); break;
       case "privacy": out = await privacyAdminView(); break;
       case "settings": out = await data.settings(); break;
