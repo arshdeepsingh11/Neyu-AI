@@ -61,6 +61,7 @@ model ReferralSubmission {
   @@index([status, createdAt])
   @@index([patientId, createdAt])
   @@index([orgId, status, createdAt])
+  @@index([createdAt])
 }
 
 model SymptomCheckLog {
@@ -81,6 +82,7 @@ model SymptomCheckLog {
   @@index([sessionId])
   @@index([patientId, createdAt])
   @@index([emergency, reviewedAt])
+  @@index([createdAt])
 }
 
 model AlbaConversation {
@@ -94,6 +96,7 @@ model AlbaConversation {
 
   @@index([sessionId])
   @@index([patientId, createdAt])
+  @@index([createdAt])
 }
 
 model AlbaMessage {
@@ -105,6 +108,7 @@ model AlbaMessage {
   createdAt      DateTime         @default(now())
 
   @@index([conversationId, createdAt])
+  @@index([createdAt(ops: TimestampMinMaxOps)], type: Brin) // Insights: Neyu topics in a date range
 }
 
 model LongevityAssessment {
@@ -120,6 +124,7 @@ model LongevityAssessment {
 
   @@index([sessionId])
   @@index([patientId, createdAt])
+  @@index([createdAt])
 }
 
 model LabResultCheck {
@@ -134,6 +139,7 @@ model LabResultCheck {
 
   @@index([sessionId])
   @@index([patientId, createdAt])
+  @@index([createdAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -213,6 +219,8 @@ model Patient {
 
   @@index([orgId, createdAt])
   @@index([accountStatus])
+  @@index([createdAt]) // dashboards: sign-ups in a date range
+  @@index([emailVerifiedAt])
 }
 
 // Only a SHA-256 hash of the session token is stored — a leaked database
@@ -499,11 +507,32 @@ model Visitor {
 
   @@index([patientId])
   @@index([lastSeenAt])
+  @@index([firstSeenAt]) // Insights: new visitors per source
 }
 
 // Links from anrahealth.ca / My Health Space to other sites (clicks only).
 // Anonymous website interest signals for Insights (searches and clicks). No names, no
 // patient ids — only the browser session id, so visitors can't be identified.
+// Daily totals worked out from raw activity by the background worker (Phase 5).
+// Dashboards read these small rows instead of millions of raw rows. Kept after the raw
+// rows are deleted (13 months), so long-term trends stay.
+//   kind "page"   key = path ("*" = whole site)   n = views          m = different visitors
+//   kind "source" key = referring site ("" = none) n = new visitors   m = on a phone/tablet
+//   kind "topic"  key = Neyu topic ("*" = all)    n = questions
+//   kind "device" key = mobile | desktop          n = visitors who searched or clicked
+//   kind "signup" key = "*"                        n = visitors who opened sign-up
+model DailyStat {
+  day       String   // YYYY-MM-DD, Calgary time
+  kind      String
+  key       String
+  n         Int
+  m         Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([day, kind, key])
+  @@index([kind, day])
+}
+
 model SiteEvent {
   id        String   @id @default(cuid())
   sessionId String
