@@ -94,6 +94,7 @@ export default function Patient360({ id, tab }: { id: string; tab: string }) {
     }),
     deleteAcct: () => { a.setMenu(null); a.askDelete(p.id, p.name); },
     resend: () => a.act({ action: "account.resend", patientId: p.id }, { success: "Verification email resent", sub: (r) => r?.message || "" }),
+    verify: () => a.confirm({ title: `Confirm ${p.name}’s email by hand?`, body: `Only do this after checking ${p.email} with the patient (phone call or in person). They can then sign in without the email code. This is saved in the audit log.`, label: "Email checked — confirm", run: () => a.act({ action: "account.verify", patientId: p.id, how: "Checked with the patient by staff" }, { success: "Email confirmed", sub: "The patient can sign in now" }) }),
     unlock: () => a.confirm({ title: `Unlock ${p.name}’s account?`, body: "The account was locked after repeated failed sign-in attempts. Unlocking lets the patient try again immediately.", label: "Unlock account", run: () => a.act({ action: "account.unlock", patientId: p.id }, { success: "Account unlocked", sub: p.name + " can sign in again." }) }),
     signOutAll: () => a.confirm({ title: `Sign ${p.name} out of all devices?`, body: "Every active My Health Space session ends immediately. The patient can sign in again with their password.", label: "Sign out all devices", danger: true, run: () => a.act({ action: "session.revokeAll", patientId: p.id }, { success: "Signed out of all devices", sub: p.name }) }),
   };
@@ -466,6 +467,7 @@ export default function Patient360({ id, tab }: { id: string; tab: string }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {p.locked && <AcctBtn icon="ph-lock-open" onClick={actions.unlock}>Unlock account</AcctBtn>}
                 {!p.verified && <AcctBtn icon="ph-envelope-simple" onClick={actions.resend}>Resend verification email</AcctBtn>}
+                {!p.verified && <AcctBtn icon="ph-seal-check" onClick={actions.verify}>Confirm email by hand</AcctBtn>}
                 <AcctBtn icon="ph-export" onClick={actions.exportData}>Export patient data</AcctBtn>
                 <AcctBtn icon="ph-user-minus" onClick={actions.deactivate}>{p.acct === "Deactivated" ? "Reactivate account" : "Deactivate account"}</AcctBtn>
                 <div style={{ height: 10 }} />

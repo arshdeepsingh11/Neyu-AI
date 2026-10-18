@@ -355,6 +355,17 @@ export async function runAction(b: any, c: Ctx): Promise<Result> {
       await log({ kind: "Account", action: "Resent verification email", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p) });
       return { ok: true, message: "Sent to " + p.email };
     }
+    // When the patient can't get the email code (e.g. email service not set up yet), staff can
+    // confirm the address after checking it with the patient (phone call / in person).
+    case "account.verify": {
+      const p = await patientOr404(b.patientId);
+      if (p.emailVerifiedAt) throw new HttpError(409, "This email is already verified.");
+      const how = str(b.how, 120);
+      if (how.length < 3) throw new HttpError(400, "Say how you confirmed the email (e.g. phone call).");
+      await prisma.patient.update({ where: { id: p.id }, data: { emailVerifiedAt: new Date() } });
+      await log({ kind: "Account", action: "Confirmed email by hand", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p), reason: how, before: "Email not verified", after: "Email verified" });
+      return { ok: true };
+    }
     case "account.deactivate": {
       const p = await patientOr404(b.patientId);
       const next = p.accountStatus === "deactivated" ? "active" : "deactivated";
