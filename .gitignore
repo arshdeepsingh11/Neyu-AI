@@ -46,4 +46,5 @@ COMMANDS.txt
 # Local file storage (patient reports, exports) — never commit
 /storage/
 
+# One-time commit scripts delivered with each phase (run once, never committed)
 commit-phase*.ps1
