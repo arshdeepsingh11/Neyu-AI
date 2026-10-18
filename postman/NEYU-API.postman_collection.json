@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NEYU Health API (local)",
-    "description": "Run against your PC: npm run dev → baseUrl http://localhost:3000.\nOrder matters inside each folder (sign in first — Postman keeps the session cookie).\nOrigin header is required: the API rejects requests from other sites (CSRF protection).\nVariables: patientEmail / patientPassword (demo patient).\nstaffEmail / staffPassword: easiest is the super admin from your .env (SUPER_ADMIN_USERNAME / SUPER_ADMIN_PASSWORD) — password only, no 2-step code.\nIf you use an account with 2-step on, also set totpSecret = the key under 'Can't scan? Type this key' (Postman makes the 6-digit code from it).",
+    "description": "Run against your PC: npm run dev \u2192 baseUrl http://localhost:3000.\nOrder matters inside each folder (sign in first \u2014 Postman keeps the session cookie).\nOrigin header is required: the API rejects requests from other sites (CSRF protection).\nVariables: patientEmail / patientPassword (demo patient).\nstaffEmail / staffPassword: easiest is the super admin from your .env (SUPER_ADMIN_USERNAME / SUPER_ADMIN_PASSWORD) \u2014 password only, no 2-step code.\nIf you use an account with 2-step on, also set totpSecret = the key under 'Can't scan? Type this key' (Postman makes the 6-digit code from it).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -44,11 +44,15 @@
     {
       "key": "newAdmin",
       "value": ""
+    },
+    {
+      "key": "deviceToken",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "1 · Public website",
+      "name": "1 \u00b7 Public website",
       "item": [
         {
           "name": "Home page",
@@ -409,7 +413,7 @@
       ]
     },
     {
-      "name": "2 · Patient (My Health Space)",
+      "name": "2 \u00b7 Patient (My Health Space)",
       "item": [
         {
           "name": "Sign up (new test patient)",
@@ -1120,10 +1124,10 @@
       ]
     },
     {
-      "name": "3 · Admin console",
+      "name": "3 \u00b7 Admin console",
       "item": [
         {
-          "name": "Admin sign in · step 1 (username or email + password)",
+          "name": "Admin sign in \u00b7 step 1 (username or email + password)",
           "event": [
             {
               "listen": "test",
@@ -1177,7 +1181,7 @@
           }
         },
         {
-          "name": "Admin sign in · step 2 (2-step code — skipped for password-only accounts)",
+          "name": "Admin sign in \u00b7 step 2 (2-step code \u2014 skipped for password-only accounts)",
           "event": [
             {
               "listen": "test",
@@ -1199,7 +1203,7 @@
                   "if (!pm.collectionVariables.get('needsCode')) { pm.execution.skipRequest(); return; }",
                   "// Makes the 6-digit code from totpSecret (the key shown under 'Can't scan? Type this key' when you set up 2-step).",
                   "const secret = String(pm.variables.get('totpSecret') || '').replace(/\\s/g, '').toUpperCase();",
-                  "if (!secret) throw new Error('Set totpSecret (your 2-step key) — see the collection description.');",
+                  "if (!secret) throw new Error('Set totpSecret (your 2-step key) \u2014 see the collection description.');",
                   "const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; let bits = '';",
                   "for (const ch of secret) { const i = A.indexOf(ch); if (i < 0) throw new Error('totpSecret has a wrong character: ' + ch); bits += i.toString(2).padStart(5, '0'); }",
                   "let hex = ''; for (let i = 0; i + 8 <= bits.length; i += 8) hex += parseInt(bits.substr(i, 8), 2).toString(16).padStart(2, '0');",
@@ -1670,14 +1674,14 @@
           }
         },
         {
-          "name": "Patient record → asks for a reason (break-glass)",
+          "name": "Patient record \u2192 asks for a reason (break-glass)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('reason asked (403) — or already open from a reason in the last 60 min (200)', () => {",
+                  "pm.test('reason asked (403) \u2014 or already open from a reason in the last 60 min (200)', () => {",
                   "  if (pm.response.code === 403) pm.expect(pm.response.json().code).to.eql('reason_required'); else pm.expect(pm.response.code).to.eql(200);",
                   "});"
                 ]
@@ -1819,7 +1823,7 @@
           }
         },
         {
-          "name": "API v1 · me",
+          "name": "API v1 \u00b7 me",
           "event": [
             {
               "listen": "test",
@@ -1860,7 +1864,7 @@
           }
         },
         {
-          "name": "API v1 · patients (page of 2)",
+          "name": "API v1 \u00b7 patients (page of 2)",
           "event": [
             {
               "listen": "test",
@@ -1907,7 +1911,7 @@
           }
         },
         {
-          "name": "API v1 · validation error (limit 500)",
+          "name": "API v1 \u00b7 validation error (limit 500)",
           "event": [
             {
               "listen": "test",
@@ -1952,7 +1956,7 @@
           }
         },
         {
-          "name": "API v1 · patient summary",
+          "name": "API v1 \u00b7 patient summary",
           "event": [
             {
               "listen": "test",
@@ -1993,7 +1997,7 @@
           }
         },
         {
-          "name": "API v1 · audit (refused)",
+          "name": "API v1 \u00b7 audit (refused)",
           "event": [
             {
               "listen": "test",
@@ -2038,7 +2042,7 @@
           }
         },
         {
-          "name": "API v1 · privacy requests",
+          "name": "API v1 \u00b7 privacy requests",
           "event": [
             {
               "listen": "test",
@@ -2129,7 +2133,7 @@
           ]
         },
         {
-          "name": "Add an admin (Insights only) · API v1",
+          "name": "Add an admin (Insights only) \u00b7 API v1",
           "request": {
             "method": "POST",
             "header": [
@@ -2180,7 +2184,7 @@
           ]
         },
         {
-          "name": "Add an admin · bad kind → 400",
+          "name": "Add an admin \u00b7 bad kind \u2192 400",
           "request": {
             "method": "POST",
             "header": [
@@ -2326,7 +2330,7 @@
           ]
         },
         {
-          "name": "New admin: Staff screen → 403",
+          "name": "New admin: Staff screen \u2192 403",
           "request": {
             "method": "GET",
             "header": [
@@ -2421,10 +2425,10 @@
       ]
     },
     {
-      "name": "4 · Security checks (should FAIL on purpose)",
+      "name": "4 \u00b7 Security checks (should FAIL on purpose)",
       "item": [
         {
-          "name": "No session → 401",
+          "name": "No session \u2192 401",
           "event": [
             {
               "listen": "test",
@@ -2463,7 +2467,7 @@
           }
         },
         {
-          "name": "Wrong Origin → 403",
+          "name": "Wrong Origin \u2192 403",
           "event": [
             {
               "listen": "test",
@@ -2511,7 +2515,7 @@
           }
         },
         {
-          "name": "Admin console without sign-in → 401",
+          "name": "Admin console without sign-in \u2192 401",
           "event": [
             {
               "listen": "test",
@@ -2556,7 +2560,7 @@
           }
         },
         {
-          "name": "2-step code without password step → 401",
+          "name": "2-step code without password step \u2192 401",
           "event": [
             {
               "listen": "test",
@@ -2604,7 +2608,7 @@
           }
         },
         {
-          "name": "Admin wrong password → 401",
+          "name": "Admin wrong password \u2192 401",
           "event": [
             {
               "listen": "test",
@@ -2653,7 +2657,7 @@
           }
         },
         {
-          "name": "API v1 · health (no sign-in)",
+          "name": "API v1 \u00b7 health (no sign-in)",
           "event": [
             {
               "listen": "test",
@@ -2693,7 +2697,7 @@
           }
         },
         {
-          "name": "API v1 · OpenAPI spec",
+          "name": "API v1 \u00b7 OpenAPI spec",
           "event": [
             {
               "listen": "test",
@@ -2733,7 +2737,7 @@
           }
         },
         {
-          "name": "API v1 without sign-in → 401",
+          "name": "API v1 without sign-in \u2192 401",
           "event": [
             {
               "listen": "test",
@@ -2772,7 +2776,7 @@
           }
         },
         {
-          "name": "Unsubscribe with a bad link → 404",
+          "name": "Unsubscribe with a bad link \u2192 404",
           "event": [
             {
               "listen": "test",
@@ -2810,6 +2814,614 @@
                   "key": "t",
                   "value": "not-a-real-token-123"
                 }
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 \u00b7 NEYU phone app (Phase 6)",
+      "description": "What the NEYU iPhone / Android app calls: push notifications, Apple Health / Health Connect sync, sign-in to Withings/Oura/WHOOP from the phone.",
+      "item": [
+        {
+          "name": "Sign in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/auth/sign-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "auth",
+                "sign-in"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Session has the patient id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('signed in with id', () => { const j = pm.response.json(); pm.expect(j.signedIn).to.eql(true); pm.expect(j.id).to.be.a('string'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "session"
+              ]
+            },
+            "description": "The app keeps each person's phone settings apart by this id."
+          }
+        },
+        {
+          "name": "Push: can the server reach phones",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has configured + phones', () => { const j = pm.response.json(); pm.expect(j.configured).to.have.keys('android','ios'); pm.expect(j.phones).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/push",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "push"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Push: register this phone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/push",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "push"
+              ]
+            },
+            "description": "The NEYU app sends its Firebase / Apple token here.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"token\": \"postman-test-token-0123456789\", \"platform\": \"android\", \"appVersion\": \"1\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push: bad token is refused",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/push",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "push"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"token\": \"short\", \"platform\": \"android\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push: send a test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 when push is set up on the server, 409 when not, 429 if repeated', () => pm.expect(pm.response.code).to.be.oneOf([200,409,429]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/push/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "push",
+                "test"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Push: remove this phone (sign-out)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('removed', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().removed).to.eql(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/push",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "push"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"token\": \"postman-test-token-0123456789\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Devices: Android from the website = Notify me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('waitlist', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().waitlist).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "devices"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\": \"android\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Devices: Android from the app = sync token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('token', () => { pm.response.to.have.status(200); const t = pm.response.json().token; pm.expect(t).to.match(/^anra_dev_/); pm.collectionVariables.set('deviceToken', t); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "devices"
+              ]
+            },
+            "description": "Health Connect (Android) and Apple Health (iPhone) connect from the app.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\": \"android\", \"via\": \"app\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ingest: daily values from the phone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('stored', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().stored).to.eql(4); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{deviceToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/wearables/ingest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "wearables",
+                "ingest"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"readings\": [{\"metric\": \"steps\", \"value\": 8200, \"date\": \"2026-10-14\"}, {\"metric\": \"sleep\", \"value\": 7.4, \"date\": \"2026-10-14\"}, {\"metric\": \"rhr\", \"value\": 58, \"date\": \"2026-10-14\"}, {\"metric\": \"bp\", \"value\": \"121/79\", \"date\": \"2026-10-14\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Devices: disconnect Android",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/devices?provider=android",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "devices"
+              ],
+              "query": [
+                {
+                  "key": "provider",
+                  "value": "android"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Withings/Oura/WHOOP from the app: one-time link",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 with a link when Oura is set up, 409 when not', () => { pm.expect(pm.response.code).to.be.oneOf([200,409]); if (pm.response.code === 200) pm.expect(pm.response.json().url).to.match(/\\/start\\?h=/); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/oauth/oura/handoff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "oauth",
+                "oura",
+                "handoff"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "App privacy page",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('not indexed', () => pm.expect(pm.response.text()).to.include('noindex'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/app-privacy",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "app-privacy"
               ]
             },
             "description": ""
