@@ -38,7 +38,7 @@ export function SignIn({ onSignedIn }: { onSignedIn: (actor: string) => void }) 
   useEffect(() => { if (step !== "password") setTimeout(() => codeRef.current?.focus(), 50); }, [step]);
   const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id.trim()) return setErr("Enter your work email.");
+    if (!id.trim()) return setErr("Enter your username or email.");
     if (!pw) return setErr("Enter your password.");
     setBusy(true); setErr("");
     try {
@@ -83,7 +83,7 @@ export function SignIn({ onSignedIn }: { onSignedIn: (actor: string) => void }) 
         {step === "password" && (
           <form onSubmit={submitPassword} style={card}>
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={label}>Work email</span>
+              <span style={label}>Username or email</span>
               <input type="text" autoComplete="username" value={id} onChange={(e) => { setId(e.target.value); setErr(""); }} className="f-teal" style={input} />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -93,7 +93,7 @@ export function SignIn({ onSignedIn }: { onSignedIn: (actor: string) => void }) 
             {note && <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: T.wash, color: T.tealDk, borderRadius: 12, padding: "10px 12px", fontSize: 13.5 }}><i className="ph ph-info" style={{ marginTop: 2 }} />Ask your NEYU super admin to reset your password or 2-step code.</div>}
             {errBox}
             {primary("Continue", "Checking…")}
-            <p style={{ margin: 0, fontSize: 13, color: T.faint, lineHeight: 1.5 }}>Next you’ll enter a 6-digit code from your authenticator app. Every sign-in is recorded in the audit log.</p>
+            <p style={{ margin: 0, fontSize: 13, color: T.faint, lineHeight: 1.5 }}>If your account uses a 2-step code, you’ll enter it next. Every sign-in is recorded in the audit log.</p>
           </form>
         )}
 
@@ -399,7 +399,7 @@ export function PasswordDialog({ onClose, onSaved }: { onClose: () => void; onSa
   const [err, setErr] = useState(""), [busy, setBusy] = useState(false);
   const go = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (next.length < 12) return setErr("Use at least 12 characters.");
+    if (next.length < 8) return setErr("Use at least 8 characters.");
     if (next !== again) return setErr("The new passwords don't match.");
     setBusy(true);
     try { await postAction({ action: "me.password", current: cur, next }); onSaved(); onClose(); }
@@ -414,7 +414,7 @@ export function PasswordDialog({ onClose, onSaved }: { onClose: () => void; onSa
       <form onSubmit={go} role="dialog" aria-modal="true" aria-labelledby="pw-title" style={{ ...dialog, maxWidth: 420, gap: 14 }}>
         <h2 id="pw-title" style={{ margin: 0, fontSize: 19, fontWeight: 500 }}>Change your password</h2>
         {field("Current password", cur, setCur, "current-password")}
-        {field("New password (12+ characters)", next, setNext, "new-password")}
+        {field("New password (8+ characters)", next, setNext, "new-password")}
         {field("New password again", again, setAgain, "new-password")}
         {err && <div role="alert" style={{ fontSize: 13.5, color: T.peachInk }}>{err}</div>}
         <p style={{ margin: 0, fontSize: 13, color: T.faint }}>Your other devices are signed out. This one stays signed in.</p>

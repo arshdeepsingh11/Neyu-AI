@@ -1,6 +1,8 @@
 // POST /api/admin/login { identifier, password }
 //
-// Staff account (email found in StaffUser): checks the password, then asks for the 2-step code.
+// Staff account (username/email found in StaffUser, or the .env super admin): checks the password,
+// then asks for the 2-step code — unless a super admin set this person to "password only":
+//   → { ok, step: "done", actor }                 signed in (password only)
 //   → { ok, step: "code" }                       enter the 6-digit code  (POST /api/admin/mfa)
 //   → { ok, step: "setup", secret, otpauth, qr }  first sign-in: scan the QR code, then enter a code
 // Old shared password (only until the first super admin has signed in with their own account):
@@ -16,7 +18,7 @@ import { assertSameOrigin, clientMeta } from "@backend/patientAuth";
 import { rateLimit } from "@backend/rateLimit";
 import { readJson, toResponse, HttpError, NO_STORE } from "@backend/apiHelpers";
 
-const WRONG = "That email or password isn't right.";
+const WRONG = "That username or password isn't right.";
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +26,7 @@ export async function POST(req: Request) {
     const { ip, userAgent } = await clientMeta();
     if (!(await rateLimit(`admin-login:${ip}`, 10, 15 * 60 * 1000))) throw new HttpError(429, "Too many attempts. Please wait 15 minutes.");
     const b = await readJson(req);
-    if (typeof b.identifier !== "string" || !b.identifier.trim()) throw new HttpError(400, "Enter your work email.");
+    if (typeof b.identifier !== "string" || !b.identifier.trim()) throw new HttpError(400, "Enter your username or email.");
     if (typeof b.password !== "string" || !b.password) throw new HttpError(400, "Enter your password.");
     const email = normalizeStaffEmail(b.identifier);
 
@@ -35,6 +37,10 @@ export async function POST(req: Request) {
         await adminLog({ actor: email, staffId: r.staffId, ip, kind: "Account", action: r.reason === "locked" ? "Sign-in blocked (locked)" : r.reason === "suspended" ? "Sign-in blocked (suspended)" : "Failed sign-in", resource: "Admin console", result: "Denied" });
         if (r.reason === "locked") throw new HttpError(423, "Too many wrong passwords. This account is locked for 15 minutes.");
         throw new HttpError(401, WRONG); // same message for wrong password / suspended: don't reveal which
+      }
+      if (r.step === "done") {
+        await adminLog({ actor: email, staffId: r.staffId, ip, kind: "Account", action: "Signed in (password)", resource: "Admin console" });
+        return NextResponse.json({ ok: true, step: "done", actor: email }, { headers: NO_STORE });
       }
       await adminLog({ actor: email, staffId: r.staffId, ip, kind: "Account", action: "Password accepted — waiting for 2-step code", resource: "Admin console" });
       if (r.step === "setup") {
