@@ -18,7 +18,7 @@ export interface StudioConfig {
   morph: string[];               // rotating hero words
   tagline: string;
   overview: string[];
-  video?: { kind: "mp4"; src: string } | { kind: "youtube"; id: string };
+  video?: { kind: "mp4"; src: string; poster?: string } | { kind: "youtube"; id: string };
   heroLine?: string;             // line over the video
   care: CareItem[];              // services / what we treat
   conditions: string[];
@@ -43,7 +43,7 @@ export const STUDIO: Record<string, StudioConfig> = {
     morph: ["your heart.", "your rhythm.", "your pressure.", "your future."],
     tagline: "Advanced heart care in Calgary — home of Alberta’s first onsite exercise stress echocardiogram program.",
     overview: ["NEYU Health combines specialist physicians, advanced diagnostics, genomics, artificial intelligence and preventive medicine to deliver personalized heart care for every stage of life.", "From a first consultation to stress echo, Holter and ambulatory blood-pressure monitoring, testing and follow-up happen under one roof."],
-    video: { kind: "mp4", src: "/videos/cardiology-hero.mp4" }, heroLine: "Healthcare designed around you",
+    video: { kind: "mp4", src: "/videos/cardiology-hero.mp4", poster: "/videos/cardiology-hero.jpg" }, heroLine: "Healthcare designed around you",
     care: services.filter((s) => CARDIAC_SLUGS.includes(s.slug)).map((s) => ({ name: s.name, desc: s.long || s.short, icon: ICON[s.slug] || "ph-heartbeat", group: "Diagnostics & care" })),
     conditions: cardiacSymptoms.map((s) => s.name),
     whenToSee: "Chest discomfort, palpitations, shortness of breath, fainting, swelling or high blood pressure are all reasons to ask your doctor for a cardiology referral. Sudden or severe symptoms: call 911.",
