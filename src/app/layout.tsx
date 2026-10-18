@@ -14,6 +14,7 @@ import AlbaFactPopup from "@/components/AlbaFactPopup";
 import EmergencyOverlay from "@/components/EmergencyOverlay";
 import MotionElements from "@/components/MotionElements";
 import PageVisitTracker from "@/components/PageVisitTracker";
+import NativeShell from "@/components/NativeShell";
 import { cn } from "@/lib/utils";
 import StructuredData from "@/components/StructuredData";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
@@ -56,6 +57,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <AlbaWidget />
               <AlbaFactPopup />
               <EmergencyOverlay />
+              {/* NEYU phone app only: lock, push, Apple Health / Health Connect, share sheet. */}
+              <NativeShell />
             </AlbaProvider>
           </RegionProvider>
         </LanguageProvider>
