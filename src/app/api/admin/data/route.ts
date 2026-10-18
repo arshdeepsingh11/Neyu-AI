@@ -13,10 +13,21 @@ import { backfillVisitors } from "@backend/visitors";
 import { assertAccess, permsFor, VIEW_PERMS, ReasonRequired } from "@backend/access";
 import { staffView } from "@backend/staffAdmin";
 import { platformAudit, auditStats } from "@backend/auditData";
+import { insights } from "@backend/siteInsights";
 import { privacyAdminView } from "@backend/privacy";
 import { cached, kv } from "@backend/kv";
 import { storage } from "@backend/storage";
 import { queueStats } from "@backend/queue";
+
+// Admins only see what their features cover: queue counts need Inbox, patient names need Patients.
+type Who = { who: string; go: unknown };
+function maskFor(admin: Awaited<ReturnType<typeof requireAdmin>>) {
+  const has = (k: string) => !admin.staff || !!admin.staff.perms[k];
+  return {
+    queue: has("inbox.manage"), names: has("patients.list"), referrals: has("referrals.manage"),
+    activity: <T extends Who>(rows: T[]) => (has("patients.list") ? rows : rows.map((r) => ({ ...r, who: "A patient", go: null }))),
+  };
+}
 
 export async function GET(req: Request) {
   let admin: Awaited<ReturnType<typeof requireAdmin>> | null = null, view = "";
@@ -33,8 +44,21 @@ export async function GET(req: Request) {
     await assertAccess(admin, VIEW_PERMS[view], view === "patient" ? id : null);
 
     switch (view) {
-      case "boot": out = { ...(await data.boot(actor, admin.role)), ...permsFor(admin), name: admin.staff?.name || actor, system: { store: kv.backend(), storage: storage.driver(), queue: (await queueStats()).mode } }; break;
-      case "overview": out = await data.overview(range, from, to); break;
+      case "boot": {
+        const m = maskFor(admin), b = await data.boot(actor, admin.role);
+        out = {
+          ...b, queueCount: m.queue ? b.queueCount : 0, emergencyCount: m.queue ? b.emergencyCount : 0,
+          latestReferral: m.referrals ? b.latestReferral : null, activity: m.activity(b.activity),
+          ...permsFor(admin), name: admin.staff?.name || actor, isSuper: !admin.staff || admin.staff.isSuper,
+          system: { store: kv.backend(), storage: storage.driver(), queue: (await queueStats()).mode },
+        };
+        break;
+      }
+      case "overview": {
+        const m = maskFor(admin), o = await data.overview(range, from, to);
+        out = { ...o, queue: m.queue ? o.queue : [], activity: m.activity(o.activity) };
+        break;
+      }
       case "inbox": out = { queue: await data.loadQueue() }; break;
       case "analytics": out = await cached(`analytics:${range}:${from}:${to}`, 60, () => data.analytics(range, from, to)); break;
       case "patients": out = { rows: await data.patientsList() }; break;
@@ -82,6 +106,7 @@ export async function GET(req: Request) {
         out = e;
         break;
       }
+      case "insights": out = await cached(`insights:${range}:${from}:${to}`, 60, () => insights(range, from, to)); break;
       case "audit-platform": out = await platformAudit(q); break;
       case "audit-stats": out = await auditStats(); break;
       case "staff": out = await staffView(admin); break;
