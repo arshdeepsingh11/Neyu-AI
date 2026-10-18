@@ -126,6 +126,32 @@ stateDiagram-v2
   Deleted --> [*]: certificate kept (counts only, no personal data)
 ```
 
+## ✦ The NEYU phone app
+
+iPhone and Android app (Capacitor 8) around My Health Space and the website, built in the cloud by GitHub Actions. Setup and publishing: [`mobile/README.md`](mobile/README.md).
+
+| Feature | |
+|---|---|
+| Apple Health · Health Connect | read only, patient chooses the data; last 30 days, then new days when the app opens |
+| Push notifications | Firebase (Android) and Apple push sent by NEYU's own server; never health details on the lock screen |
+| Face ID · fingerprint lock | on open and after 2 minutes away; the face or fingerprint never leaves the phone |
+| Share sheet · camera | PDFs and exports to Files / Print / Mail; scan reports and meals |
+| Withings · Oura · WHOOP | one-time signed link, sign-in in the phone's browser, back to the app |
+
+```mermaid
+sequenceDiagram
+  participant Phone as NEYU app
+  participant Health as Apple Health / Health Connect
+  participant API as NEYU server
+  participant Push as Firebase / Apple push
+  Phone->>Health: read permission (patient chooses)
+  Phone->>API: connect → private sync key
+  Health-->>Phone: daily steps, sleep, heart…
+  Phone->>API: daily values (sync key)
+  API->>Push: "Your daily brief is ready" (no health details)
+  Push-->>Phone: notification → tap opens the screen
+```
+
 ## ✦ Built to scale
 
 | Need | How |
@@ -156,9 +182,12 @@ pie showData
 | Phase 3 platform | 101 | break-glass, staff management, audit, privacy, storage, Redis, worker, API v1 |
 | Phase 4 admin & insights | 78 | .env super admin, admins with chosen features, live access changes, Insights, SEO |
 | Phase 5 performance | 27 | one year of data: dashboards, daily totals, background jobs, health & metrics, caching |
+| Phase 6 phone app — server | 67 | push to Android + iPhone (mock Firebase / Apple, signed keys checked), phones removed when gone, Health Connect / Apple Health sync, one-time sign-in links, daily brief on the phone |
+| Phase 6 health data mapping | 19 | Apple Health / Health Connect → daily values: units, local days, sleep stages, naps |
+| Phase 6 app in a browser | 51 | iPhone + Android with mocked phone features: connect, notifications, Face ID lock, share sheet, app links, offline |
 | Patient API | 80 | My Health Space end to end |
-| Postman / Newman | 86 | 59 requests across website, patient, admin and API v1 |
-| **Total** | **410** | all passing |
+| Postman / Newman | 101 | 72 requests across website, patient, admin, API v1 and the phone app |
+| **Total** | **562** | all passing |
 | Load test (k6) | 200 at once | pages p95 0.23 s · My Health Space 0.50 s · dashboards 0.76 s · 0 errors |
 
 ## ✦ Roadmap
@@ -171,9 +200,9 @@ pie showData
 | 3 · Core backend | Staff sign-in + 2-step, roles, break-glass, audit, privacy, file storage, Redis, worker, API v1 | ✅ Done |
 | 4 · Admin dashboards | Super admin + admins with chosen features, Insights, SEO / AEO / GEO on every page | ✅ Done |
 | 5 · Performance | Ready for 5,000 visitors a day: daily totals, background-warmed dashboards, cluster mode, monitoring, load tests | ✅ Done |
-| 6 · Mobile app | iOS & Android | ⏭ Next |
-| 7 · Devices | Apple Health · Health Connect | ◻ Planned |
-| 8 · Legal pages | Privacy policy, terms, AI notice | ◻ Planned |
+| 6 · Mobile app | iPhone & Android: Apple Health, Health Connect, push, Face ID, share sheet, cloud builds | ✅ Done (store publishing after Phase 8) |
+| 7 · Devices | Apple Health · Health Connect (done in Phase 6) | ✅ Merged into 6 |
+| 8 · Legal pages | Privacy policy, terms, AI notice | ⏭ Next |
 | 9 · Go live | Production rollout with DevOps | ◻ Planned |
 
 ## ✦ Stack
@@ -189,6 +218,8 @@ backend/            services: auth, access control, privacy, storage, queue, AI
 prisma/             schema + migrations
 scripts/            seed, import, staff accounts, worker, storage tools
 postman/            API test collection
+mobile/             iPhone + Android app (Capacitor): native projects, setup scripts, build guide
+.github/workflows/  cloud builds of the phone app
 deploy/             server setup for DevOps (Nginx, PM2, backups)
 docs/               specs, design notes and the visuals in this README
 ```
