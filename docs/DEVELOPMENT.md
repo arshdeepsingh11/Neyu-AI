@@ -96,3 +96,9 @@ API reference: `GET /api/v1/openapi.json` (OpenAPI 3.1) · health: `GET /api/v1/
 - Push needs `FIREBASE_SERVICE_ACCOUNT` (Android) and/or `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID` (iPhone). Without them nothing is sent.
   For tests, `FCM_TOKEN_URL`, `FCM_ENDPOINT_BASE` and `APNS_HOST` point the server at mock push services.
 - Apple Health / Health Connect data → daily values: `src/lib/native/healthMap.ts` (pure functions, unit-tested).
+
+## 10 · Legal pages (Phase 8)
+
+- Company facts for the legal pages live in `src/lib/legal.ts`; how to change a policy: `docs/LEGAL.md`.
+- Test the dev server too: `npm run dev` and open `/privacy` — Phase 8 found that `npm run dev` had been broken since Phase 5.
+- Accessibility: run axe on changed pages (0 serious/critical issues is the bar). Small coloured text uses `N.tealText`, not the brand teal.

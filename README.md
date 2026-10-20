@@ -185,9 +185,11 @@ pie showData
 | Phase 6 phone app — server | 67 | push to Android + iPhone (mock Firebase / Apple, signed keys checked), phones removed when gone, Health Connect / Apple Health sync, one-time sign-in links, daily brief on the phone |
 | Phase 6 health data mapping | 19 | Apple Health / Health Connect → daily values: units, local days, sleep stages, naps |
 | Phase 6 app in a browser | 51 | iPhone + Android with mocked phone features: connect, notifications, Face ID lock, share sheet, app links, offline |
+| Phase 8 legal & consent | 31 | legal pages, consent versions, policy review, 18+ rule, statistics opt-out |
+| Accessibility (axe, WCAG 2.1 AA) | 0 serious | 20 page views, desktop + phone |
 | Patient API | 80 | My Health Space end to end |
-| Postman / Newman | 101 | 72 requests across website, patient, admin, API v1 and the phone app |
-| **Total** | **562** | all passing |
+| Postman / Newman | 116 | 81 requests across website, patient, admin, API v1, phone app and legal |
+| **Total** | **608** | all passing |
 | Load test (k6) | 200 at once | pages p95 0.23 s · My Health Space 0.50 s · dashboards 0.76 s · 0 errors |
 
 ## ✦ Roadmap
@@ -202,7 +204,7 @@ pie showData
 | 5 · Performance | Ready for 5,000 visitors a day: daily totals, background-warmed dashboards, cluster mode, monitoring, load tests | ✅ Done |
 | 6 · Mobile app | iPhone & Android: Apple Health, Health Connect, push, Face ID, share sheet, cloud builds | ✅ Done (store publishing after Phase 8) |
 | 7 · Devices | Apple Health · Health Connect (done in Phase 6) | ✅ Merged into 6 |
-| 8 · Legal pages | Privacy policy, terms, AI notice | ⏭ Next |
+| 8 · Legal & trust | Privacy Policy, Terms, Neyu AI notice, Cookies, Accessibility; policy versions with review; 18+ rule; statistics opt-out; WCAG AA fixes | ✅ Done (company facts to confirm in `src/lib/legal.ts`) |
 | 9 · Go live | Production rollout with DevOps | ◻ Planned |
 
 ## ✦ Stack
@@ -221,7 +223,7 @@ postman/            API test collection
 mobile/             iPhone + Android app (Capacitor): native projects, setup scripts, build guide
 .github/workflows/  cloud builds of the phone app
 deploy/             server setup for DevOps (Nginx, PM2, backups)
-docs/               specs, design notes and the visuals in this README
+docs/               specs, design notes, LEGAL.md (keeping the legal pages correct)
 ```
 
 **Developers:** setup, local services and tests are in [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). Server rollout is in [`deploy/README.md`](deploy/README.md).
