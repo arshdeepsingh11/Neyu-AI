@@ -268,7 +268,7 @@ type PrivacyDTO = {
   exports: { id: string; status: string; createdAt: string; expiresAt: string | null }[];
 };
 const PRIV = "/api/portal/privacy";
-const CONSENT_LABEL: Record<string, string> = { terms: "Terms of use", privacy: "Privacy policy", ai: "Neyu AI reads my data when I ask", marketing: "News and offers by email" };
+const CONSENT_LABEL: Record<string, string> = { terms: "Terms of Use", privacy: "Privacy Policy", ai: "Neyu AI reads my data when I ask", marketing: "News and offers by email" };
 const shortDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" }) : "—");
 
 function PrivacyCentre() {

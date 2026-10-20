@@ -25,7 +25,27 @@ async function currentPolicy(kind: string) {
   return prisma.policyVersion.findFirst({ where: { kind }, orderBy: { publishedAt: "desc" } });
 }
 
-export async function recordConsent(patientId: string, kind: ConsentKind, granted: boolean, method: "signup" | "settings" | "unsubscribe" | "staff", meta: { ip?: string; userAgent?: string } = {}) {
+/** Terms / Privacy Policy versions newer than the ones this patient agreed to (ask them to review). */
+export async function policyReview(patientId: string) {
+  const out: { kind: "terms" | "privacy"; version: string; url: string | null; summary: string }[] = [];
+  for (const kind of ["terms", "privacy"] as const) {
+    const [pol, last] = await Promise.all([
+      currentPolicy(kind),
+      prisma.consent.findFirst({ where: { patientId, kind, granted: true }, orderBy: { createdAt: "desc" }, select: { policyVersionId: true } }),
+    ]);
+    if (pol && last?.policyVersionId !== pol.id) out.push({ kind, version: pol.version, url: pol.url, summary: pol.summary });
+  }
+  return { needed: out.length > 0, policies: out };
+}
+
+/** The patient agreed to the current Terms and Privacy Policy (after a change). */
+export async function acceptPolicies(patientId: string, meta: { ip?: string; userAgent?: string }) {
+  const r = await policyReview(patientId);
+  for (const p of r.policies) await recordConsent(patientId, p.kind, true, "review", meta);
+  return policyReview(patientId);
+}
+
+export async function recordConsent(patientId: string, kind: ConsentKind, granted: boolean, method: "signup" | "settings" | "unsubscribe" | "staff" | "review", meta: { ip?: string; userAgent?: string } = {}) {
   const pol = await currentPolicy(kind);
   return prisma.consent.create({ data: { patientId, kind, policyVersionId: pol?.id || null, granted, method, ip: meta.ip?.slice(0, 60) || null, userAgent: meta.userAgent?.slice(0, 300) || null } });
 }

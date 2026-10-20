@@ -22,6 +22,7 @@ import Protocol from "./screens/Protocol";
 import Devices from "./screens/Devices";
 import History from "./screens/History";
 import { Appointments, Referrals } from "./screens/Appointments";
+import PolicyUpdate from "./PolicyUpdate";
 import { More, Profile, Privacy, Notifications } from "./screens/Account";
 import Sheets from "./Sheets";
 import { Heart, Lifestyle, Family, CareView, Rewards } from "./screens/Universe";
@@ -187,6 +188,7 @@ export default function PortalApp({ boot, initialRoute }: { boot: BootstrapDTO; 
         )}
         {!(group && group.items.length > 1 && !isDetail) && <div style={{ height: 12 }} />}
 
+        <PolicyUpdate />
         <div ref={mainRef} style={{ scrollMarginTop: 90 }}>
           {showBack && (
             <button onClick={back} style={{ display: "flex", alignItems: "center", gap: 6, height: 36, padding: 0, marginBottom: 12, border: "none", background: "none", fontSize: 15, fontWeight: 500, color: C.teal, cursor: "pointer" }}><NIcon name="ph-caret-left" size={18} tone="currentColor" />{backLabel}</button>
