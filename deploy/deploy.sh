@@ -6,7 +6,7 @@ set -euo pipefail
 cd /var/www/neyu
 BRANCH="${BRANCH:-japanese-style}"
 git pull origin "$BRANCH"
-npm ci
+npm ci --include=dev       # build tools are dev packages; needed even when NODE_ENV=production
 npx prisma generate
 npx prisma migrate deploy     # applies only new, versioned migrations (PostgreSQL) — never drops data
 npm run build
