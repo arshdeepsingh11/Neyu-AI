@@ -49,7 +49,7 @@ export default function SymptomsPage() {
           <div id="sym-detail" key={cur.name} style={{ ...cardN, padding: "clamp(18px,3vw,28px)", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 18, animation: "fadeUp .35s ease", scrollMarginBottom: 24 }}>
             <div style={{ display: "grid", gap: 10, alignContent: "start" }}>
               <span style={{ display: "flex", gap: 12, alignItems: "center" }}><IconTile icon={ICON[cur.name] || "heartPulse"} active /><b style={{ fontWeight: 500, fontSize: 22 }}>{cur.name}</b></span>
-              <span style={{ fontSize: 13, letterSpacing: ".14em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>What it can mean</span>
+              <span style={{ fontSize: 13, letterSpacing: ".14em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>What it can mean</span>
               <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 6, fontSize: 15, color: N.ink2, lineHeight: 1.5 }}>{INFO[cur.name].can.map((c) => <li key={c}>{c}</li>)}</ul>
             </div>
             <div style={{ display: "grid", gap: 10, alignContent: "start" }}>

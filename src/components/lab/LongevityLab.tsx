@@ -117,14 +117,14 @@ export default function LongevityLab() {
           </section>
 
           <section style={{ display: "grid", gap: 14 }}>
-            <div><div style={{ ...eyebrow, color: N.teal }}>Five explainers</div><h2 style={{ ...h2, fontSize: "clamp(26px,3.4vw,40px)" }}>Pick a question. <span style={aiText}>See the science.</span></h2></div>
+            <div><div style={{ ...eyebrow, color: N.tealText }}>Five explainers</div><h2 style={{ ...h2, fontSize: "clamp(26px,3.4vw,40px)" }}>Pick a question. <span style={aiText}>See the science.</span></h2></div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,300px),1fr))", gap: 14 }}>
               {FEATURES.map((f) => (
                 <button key={f.v} className="sx-card" onClick={() => setTab(f.v)} style={{ ...cardN, textAlign: "left", padding: 20, display: "grid", gap: 10, alignContent: "start", cursor: "pointer", color: N.ink }}>
                   <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><IconTile icon={f.icon} /><span style={{ fontSize: 12, letterSpacing: ".16em", color: N.faint }}>0{f.n}</span></span>
                   <b style={{ fontWeight: 500, fontSize: 18, letterSpacing: "-.01em" }}>{f.title}</b>
                   <span style={{ fontSize: 14.5, color: N.ink2, lineHeight: 1.5 }}>{f.blurb}</span>
-                  <span style={{ fontSize: 13, color: N.teal, display: "flex", justifyContent: "space-between", gap: 8 }}><span>{f.tests}</span><span style={{ color: N.blue }}>Open →</span></span>
+                  <span style={{ fontSize: 13, color: N.tealText, display: "flex", justifyContent: "space-between", gap: 8 }}><span>{f.tests}</span><span style={{ color: N.blue }}>Open →</span></span>
                 </button>
               ))}
               <button className="sx-card" onClick={() => setTab("library")} style={{ ...cardN, textAlign: "left", padding: 20, display: "grid", gap: 10, alignContent: "start", cursor: "pointer", color: N.ink, background: "linear-gradient(160deg,#FFFFFF,#F1F8F6)" }}>
@@ -137,7 +137,7 @@ export default function LongevityLab() {
           </section>
 
           <section style={{ display: "grid", gap: 14 }}>
-            <div><div style={{ ...eyebrow, color: N.teal }}>Your Longevity Lab intake</div><h2 style={{ ...h2, fontSize: "clamp(26px,3.4vw,40px)" }}>Tell Neyu about you. <span style={aiText}>Get your path.</span></h2><p style={{ margin: "8px 0 0", fontSize: 16, color: T.ink2, maxWidth: 720 }}>About 2 minutes. Age, sex, habits, medicines, family history and goals — Neyu ranks which explainers and tests fit you best. Nothing is stored unless you book.</p></div>
+            <div><div style={{ ...eyebrow, color: N.tealText }}>Your Longevity Lab intake</div><h2 style={{ ...h2, fontSize: "clamp(26px,3.4vw,40px)" }}>Tell Neyu about you. <span style={aiText}>Get your path.</span></h2><p style={{ margin: "8px 0 0", fontSize: 16, color: T.ink2, maxWidth: 720 }}>About 2 minutes. Age, sex, habits, medicines, family history and goals — Neyu ranks which explainers and tests fit you best. Nothing is stored unless you book.</p></div>
             <Assessment kind="lab" accent="#2E7D5B" />
           </section>
 
@@ -156,7 +156,7 @@ export default function LongevityLab() {
 
         {tab === "library" && (
           <section style={{ display: "grid", gap: 16 }}>
-            <div><div style={{ ...eyebrow, color: N.teal }}>Research Library</div><h2 style={{ ...h2, fontSize: "clamp(26px,3.4vw,40px)" }}>The studies, <span style={aiText}>in plain language.</span></h2><p style={{ margin: "8px 0 0", fontSize: 16, color: T.ink2, maxWidth: 720 }}>Each chapter is one peer-reviewed paper: what was studied, what was found, what it means for you — and what it doesn’t.</p></div>
+            <div><div style={{ ...eyebrow, color: N.tealText }}>Research Library</div><h2 style={{ ...h2, fontSize: "clamp(26px,3.4vw,40px)" }}>The studies, <span style={aiText}>in plain language.</span></h2><p style={{ margin: "8px 0 0", fontSize: 16, color: T.ink2, maxWidth: 720 }}>Each chapter is one peer-reviewed paper: what was studied, what was found, what it means for you — and what it doesn’t.</p></div>
             <ResearchBook onFeature={(f) => valid(f) && setTab(f as Tab)} />
           </section>
         )}
@@ -165,7 +165,7 @@ export default function LongevityLab() {
           <section style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
               <AlbaOrb size={48} glow />
-              <div><div style={{ ...eyebrow, color: N.teal }}>Neyu · Longevity Lab</div><h2 style={{ ...h2, margin: "4px 0 0", fontSize: "clamp(26px,3.4vw,40px)" }}>Ask anything. <span style={aiText}>Get clarity.</span></h2></div>
+              <div><div style={{ ...eyebrow, color: N.tealText }}>Neyu · Longevity Lab</div><h2 style={{ ...h2, margin: "4px 0 0", fontSize: "clamp(26px,3.4vw,40px)" }}>Ask anything. <span style={aiText}>Get clarity.</span></h2></div>
             </div>
             <AskPanel page="/longevity-lab" label="longevity science" suggestions={ASK} seed={seed} clearSeed={() => setSeed("")} accent="#2E7D5B" />
           </section>

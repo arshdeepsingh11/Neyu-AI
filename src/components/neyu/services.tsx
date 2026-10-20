@@ -211,7 +211,7 @@ export function Packages() {
               <div style={{ display: "grid", gap: 10, alignContent: "start" }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}><IconTile icon={p.icon} />{p.id === "executive" && <AiBadge label="Executive Health" />}</div>
                 <b style={{ fontWeight: 500, fontSize: 26, letterSpacing: "-.02em" }}>{p.title}</b>
-                <span style={{ fontSize: 15, color: N.teal, fontWeight: 600 }}>{p.tag}</span>
+                <span style={{ fontSize: 15, color: N.tealText, fontWeight: 600 }}>{p.tag}</span>
                 <span style={{ fontSize: 15, color: N.ink2, lineHeight: 1.55 }}><b style={{ fontWeight: 600 }}>For:</b> {p.for}</span>
                 <span style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 14, color: N.ink2 }}><AlbaOrb size={18} motion={false} />{p.neyu}</span>
               </div>
@@ -258,7 +258,7 @@ export function Membership() {
               {m.highlight && <span style={{ position: "absolute", top: 16, right: 16 }}><AiBadge label="Most popular" /></span>}
               <IconTile icon={m.icon} />
               <b style={{ fontWeight: 500, fontSize: 28, letterSpacing: "-.02em" }}>{m.title}</b>
-              <span style={{ fontSize: 15, color: N.teal, fontWeight: 600 }}>{m.tag}</span>
+              <span style={{ fontSize: 15, color: N.tealText, fontWeight: 600 }}>{m.tag}</span>
               <span style={{ fontSize: 14, color: N.muted }}>Pricing shared on request · founding members</span>
               {m.features.map((f) => <span key={f} style={{ display: "flex", gap: 8, fontSize: 15 }}><NIcon name="ph-check" size={18} tone={N.green} style={{ marginTop: 3 }} />{f}</span>)}
             </button>
@@ -273,7 +273,7 @@ export function Membership() {
       </Section>
       <Section label="Year" eyebrow="A year with NEYU" title="What membership looks like.">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))", gap: 14 }}>
-          {year.map((y) => <div key={y.t} style={{ ...cardN, padding: 20, display: "grid", gap: 8 }}><span style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>{y.m}</span><IconTile icon={y.icon} size={40} /><b style={{ fontWeight: 500, fontSize: 19 }}>{y.t}</b><span style={{ fontSize: 14.5, color: N.ink2 }}>{y.d}</span></div>)}
+          {year.map((y) => <div key={y.t} style={{ ...cardN, padding: 20, display: "grid", gap: 8 }}><span style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>{y.m}</span><IconTile icon={y.icon} size={40} /><b style={{ fontWeight: 500, fontSize: 19 }}>{y.t}</b><span style={{ fontSize: 14.5, color: N.ink2 }}>{y.d}</span></div>)}
         </div>
         <NeyuReads text={`With ${MEMBERSHIP.find((m) => m.id === tier)!.title}, Neyu keeps your whole year connected: every reading, visit and result in one record, with a fresh plan after each assessment.`} ask={`What would NEYU Membership ${MEMBERSHIP.find((m) => m.id === tier)!.title} include for me?`} />
       </Section>
@@ -325,14 +325,14 @@ export function AtHome() {
           <Cylinder3D label="BioAro Labs tests" items={shown} height={400}
             render={(t, front) => <div style={{ ...cardN, width: "100%", height: "100%", boxSizing: "border-box", padding: 18, display: "flex", flexDirection: "column", gap: 8, background: front ? "linear-gradient(160deg,#FFFFFF,#EEF7FC)" : "#FFFFFF", borderColor: front ? "rgba(42,132,228,.45)" : N.line }}>
               <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><IconTile icon={catIcon(t.cat)} size={40} active={front} /><span style={{ fontSize: 17, fontWeight: 500 }}>{money(t.price)}</span></span>
-              <span style={{ fontSize: 11.5, letterSpacing: ".12em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>{t.cat}</span>
+              <span style={{ fontSize: 11.5, letterSpacing: ".12em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>{t.cat}</span>
               <b style={{ fontWeight: 500, fontSize: 16.5, lineHeight: 1.25 }}>{t.name}</b>
               <span style={{ fontSize: 13.5, color: N.ink2, lineHeight: 1.45, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{t.why}</span>
               <span style={{ marginTop: "auto", fontSize: 13, color: N.blue }}>Tap for details →</span>
             </div>}
             detail={(t) => <div style={{ ...cardN, padding: "clamp(16px,2.4vw,24px)", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 16 }}>
               <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
-                <span style={{ fontSize: 12, letterSpacing: ".12em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>{t.cat}</span>
+                <span style={{ fontSize: 12, letterSpacing: ".12em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>{t.cat}</span>
                 <b style={{ fontWeight: 500, fontSize: 22 }}>{t.name}</b>
                 <span style={{ fontSize: 15, color: N.ink2, lineHeight: 1.55 }}>{t.why}</span>
                 <span style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 14, color: N.ink }}>{t.facts.map(([k, v]) => <span key={k}><span style={{ color: N.muted }}>{k}: </span>{v}</span>)}</span>

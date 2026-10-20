@@ -17,7 +17,7 @@ export default function ContactPage() {
         page="/contact" suggestions={["Which clinic is closer to me?", "What should I bring to my first visit?", "Is there parking at the clinic?"]}
         visual={<div style={{ display: "grid", gap: 12 }}>
           {[["phone", "Call", brand.phone, "tel:" + brand.phone.replace(/[^\d]/g, "")], ["mail", "Email", brand.email, "mailto:" + brand.email], ["clock", "Hours", brand.hours, ""]].map(([ic, l, v, href]) => (
-            <a key={l} href={href || undefined} style={{ ...cardN, padding: "16px 18px", display: "flex", gap: 14, alignItems: "center", textDecoration: "none", color: N.ink }}><IconTile icon={ic} /><span><span style={{ display: "block", fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.teal }}>{l}</span><b style={{ fontWeight: 500, fontSize: 17 }}>{v}</b></span></a>
+            <a key={l} href={href || undefined} style={{ ...cardN, padding: "16px 18px", display: "flex", gap: 14, alignItems: "center", textDecoration: "none", color: N.ink }}><IconTile icon={ic} /><span><span style={{ display: "block", fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.tealText }}>{l}</span><b style={{ fontWeight: 500, fontSize: 17 }}>{v}</b></span></a>
           ))}
           <NeyuReads text="Emergency? Call 911. For nurse advice in Alberta, call Health Link 811." />
         </div>} />

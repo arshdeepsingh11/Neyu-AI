@@ -328,7 +328,7 @@ export function Understand() {
             <div style={{ ...cardN, padding: 22, display: "grid", gap: 10 }}>
               <AiBadge label="Neyu visit prep · example" />
               <b style={{ fontWeight: 500, fontSize: 19 }}>Questions for your cardiology visit</b>
-              {["My LDL is 3.9 — is my target lower because of my family history?", "Should my home blood pressure readings change my medication?", "Would a stress echo or carotid ultrasound add anything for me?", "When should I repeat my blood work?"].map((q, i) => <div key={q} style={{ display: "flex", gap: 10, fontSize: 15, lineHeight: 1.5 }}><span style={{ color: N.teal, fontWeight: 600 }}>{i + 1}</span>{q}</div>)}
+              {["My LDL is 3.9 — is my target lower because of my family history?", "Should my home blood pressure readings change my medication?", "Would a stress echo or carotid ultrasound add anything for me?", "When should I repeat my blood work?"].map((q, i) => <div key={q} style={{ display: "flex", gap: 10, fontSize: 15, lineHeight: 1.5 }}><span style={{ color: N.tealText, fontWeight: 600 }}>{i + 1}</span>{q}</div>)}
             </div>
             <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
               <NeyuReads text="Bring your home blood-pressure log, a list of your medicines, and these questions. A two-week home average tells your clinician more than any single reading." />

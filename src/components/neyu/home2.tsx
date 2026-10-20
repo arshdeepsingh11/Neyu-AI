@@ -23,7 +23,7 @@ export function Proactive() {
           <a key={p.k} href={p.href} className="sx-card" style={{ ...cardN, padding: 22, display: "flex", flexDirection: "column", gap: 12, textDecoration: "none", color: N.ink, minWidth: 0 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 12 }}><IconTile icon={p.icon} /><span style={{ fontSize: 11.5, color: N.muted, letterSpacing: ".16em", textTransform: "uppercase" }}>0{PILLARS.indexOf(p) + 1}</span></span>
             <b style={{ fontWeight: 500, fontSize: 26, letterSpacing: "-.02em" }}>{p.title}</b>
-            <span style={{ fontSize: 13.5, color: N.teal, fontWeight: 600, lineHeight: 1.4 }}>{p.tag}</span>
+            <span style={{ fontSize: 13.5, color: N.tealText, fontWeight: 600, lineHeight: 1.4 }}>{p.tag}</span>
             <span style={{ fontSize: 15, lineHeight: 1.55, color: N.ink2 }}>{p.text}</span>
             <LiveChart mode={p.chart} height={132} />
             <span style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13.5, color: N.ink2, lineHeight: 1.45 }}><AlbaOrb size={18} motion={false} />{p.neyu}</span>

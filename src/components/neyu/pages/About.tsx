@@ -30,7 +30,7 @@ export default function AboutPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: 18, alignItems: "stretch" }}>
           <EvervaultCard height="100%" style={{ minHeight: 280 }}>
             <div style={{ padding: "clamp(22px,3vw,32px)", display: "grid", gap: 12, alignContent: "end", height: "100%", boxSizing: "border-box" }}>
-              <span style={{ fontSize: 12, letterSpacing: ".18em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>First in Alberta</span>
+              <span style={{ fontSize: 12, letterSpacing: ".18em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>First in Alberta</span>
               <b style={{ fontWeight: 500, fontSize: "clamp(24px,3vw,34px)", lineHeight: 1.15, letterSpacing: "-.02em" }}>Onsite exercise stress echocardiograms.</b>
               <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.6, color: N.ink2 }}>{p2.split(" Our multilingual team")[0]}</p>
             </div>
