@@ -73,7 +73,7 @@ function Hero({ c, onAsk }: { c: StudioConfig; onAsk: (q: string) => void }) {
         <div style={{ position: "relative", minWidth: 0 }}>
           <div style={{ ...cardN, overflow: "hidden", padding: c.video ? 0 : "clamp(16px,2vw,22px)", position: "relative", aspectRatio: c.video ? "4 / 3.2" : undefined, background: "#fff" }}>
             {c.video?.kind === "mp4" && <video src={c.video.src} poster={c.video.poster} preload="metadata" autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
-            {c.video?.kind === "youtube" && <iframe ref={yt} title={`${c.label} — NEYU Health`} src={`https://www.youtube.com/embed/${c.video.id}?autoplay=1&mute=1&loop=1&playlist=${c.video.id}&controls=0&modestbranding=1&rel=0&playsinline=1&enablejsapi=1`} allow="autoplay; encrypted-media" style={{ position: "absolute", top: "50%", left: "50%", width: "max(100%, 177.78vh)", height: "max(100%, 56.25vw)", minWidth: "140%", minHeight: "100%", transform: "translate(-50%,-50%)", border: 0, pointerEvents: "none" }} />}
+            {c.video?.kind === "youtube" && <iframe ref={yt} title={`${c.label} — NEYU Health`} src={`https://www.youtube-nocookie.com/embed/${c.video.id}?autoplay=1&mute=1&loop=1&playlist=${c.video.id}&controls=0&modestbranding=1&rel=0&playsinline=1&enablejsapi=1`} allow="autoplay; encrypted-media" style={{ position: "absolute", top: "50%", left: "50%", width: "max(100%, 177.78vh)", height: "max(100%, 56.25vw)", minWidth: "140%", minHeight: "100%", transform: "translate(-50%,-50%)", border: 0, pointerEvents: "none" }} />}
             {c.video && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(14,27,44,.55) 0%, rgba(14,27,44,.05) 55%)" }} />}
             {c.video?.kind === "youtube" && <button onClick={toggle} aria-label={muted ? "Unmute video" : "Mute video"} style={{ position: "absolute", top: 14, right: 14, zIndex: 3, width: 40, height: 40, borderRadius: 20, border: "1px solid rgba(255,255,255,.4)", background: "rgba(255,255,255,.16)", backdropFilter: "blur(10px)", cursor: "pointer", display: "grid", placeItems: "center" }}><NIcon name={muted ? "mute" : "sound"} size={18} tone="light" /></button>}
             {!c.video && <>
@@ -208,25 +208,25 @@ export default function SpecialtyExperience({ slug }: { slug: string }) {
           </section>
           <section style={{ ...card, padding: "clamp(18px,2.6vw,26px) 0", overflow: "hidden" }}>
             <div style={{ padding: "0 clamp(18px,2.6vw,26px)", display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-              <div><div style={{ ...eyebrow, color: N.teal }}>{c.partner ? "Services" : "Care & diagnostics"}</div><h2 style={{ ...h2, fontSize: "clamp(22px,2.8vw,32px)" }}>Everything in one place.</h2></div>
+              <div><div style={{ ...eyebrow, color: N.tealText }}>{c.partner ? "Services" : "Care & diagnostics"}</div><h2 style={{ ...h2, fontSize: "clamp(22px,2.8vw,32px)" }}>Everything in one place.</h2></div>
               <button onClick={() => setTab("care")} style={nbtn("ghost")}>See all<NIcon name="arrow" size={16} tone="currentColor" /></button>
             </div>
             <Marquee3D items={c.care.map((x) => ({ icon: careIcon(x.name, x.icon), label: x.name }))} height={200} />
           </section>
           <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: 16 }}>
             <div style={{ ...card, padding: "clamp(20px,3vw,28px)", display: "grid", gap: 12, alignContent: "start" }}>
-              <div style={{ ...eyebrow, color: N.teal }}>About</div>
+              <div style={{ ...eyebrow, color: N.tealText }}>About</div>
               {c.overview.map((p) => <p key={p.slice(0, 20)} style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: T.ink2 }}>{p}</p>)}
               {c.whenToSee && <div style={{ padding: "14px 16px", borderRadius: 16, background: "linear-gradient(160deg,#F3FAF8,#EEF5FB)", border: `1px solid ${N.line}`, fontSize: 15, lineHeight: 1.55, display: "flex", gap: 10 }}><NIcon name="info" size={18} tone="grad" style={{ marginTop: 2 }} /><span><b style={{ fontWeight: 600, color: N.deep }}>When to see us · </b>{c.whenToSee}</span></div>}
             </div>
             <div style={{ ...card, padding: "clamp(20px,3vw,28px)", display: "grid", gap: 14, alignContent: "start" }}>
-              <div style={{ ...eyebrow, color: N.teal }}>{slug === "cardiology" ? "Symptoms we assess" : "What we look after"}</div>
+              <div style={{ ...eyebrow, color: N.tealText }}>{slug === "cardiology" ? "Symptoms we assess" : "What we look after"}</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{c.conditions.map((x) => <button key={x} onClick={() => ask(`What is ${x.split(" (")[0].toLowerCase()} and when should I see a specialist?`)} className="neyu-chip" style={{ ...chip(false), minHeight: 36, fontSize: 13.5, textAlign: "left", whiteSpace: "normal", padding: "6px 14px" }}><NIcon name="spark" size={14} tone="grad" />{x.split(" (")[0]}</button>)}</div>
               <p style={{ margin: 0, fontSize: 12.5, color: T.faint }}>Tap any topic and Neyu explains it.</p>
             </div>
           </section>
           <section style={{ ...card, padding: "clamp(20px,3vw,28px)" }}>
-            <div style={{ ...eyebrow, color: N.teal }}>Your path</div>
+            <div style={{ ...eyebrow, color: N.tealText }}>Your path</div>
             <h2 style={{ ...h2, fontSize: "clamp(24px,3vw,34px)" }}>From referral to a plan <span style={aiText}>made for you.</span></h2>
             <ol style={{ margin: "18px 0 0", padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,190px),1fr))", gap: 10, position: "relative" }}>
               {(c.partner ? [["referral", "Referral", "Your family doctor refers you."], ["stethoscope", "Assessment", "Consultation with the specialist team."], ["pulse", "Testing", "Diagnostics, at home or in the lab."], ["loop", "Ongoing care", "Equipment, education and support."]]
@@ -287,7 +287,7 @@ export default function SpecialtyExperience({ slug }: { slug: string }) {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,440px),1fr))", gap: 16 }}>
             {testCount > 0 && !c.tools.includes("tests") && <ChartCard title="Related tests, by price" sub="BioAro Labs"><TestsChart slugs={c.tests} accent={a} /></ChartCard>}
-            <div style={{ display: "grid", gap: 8 }}><div style={{ ...eyebrow, color: N.teal }}>Languages spoken by our physicians</div><LanguageMatrix /></div>
+            <div style={{ display: "grid", gap: 8 }}><div style={{ ...eyebrow, color: N.tealText }}>Languages spoken by our physicians</div><LanguageMatrix /></div>
           </div>
         </>}
 
@@ -299,7 +299,7 @@ export default function SpecialtyExperience({ slug }: { slug: string }) {
           </div>
           {[[shownDocs, c.partner ? "" : `${c.label} physicians`], [shownTeam, docs.length ? "Also on our NEYU team" : "Our NEYU physicians"]].map(([list, title]) => (list as Physician[]).length > 0 && (
             <section key={title as string} style={{ display: "grid", gap: 4 }}>
-              {title && <div style={{ ...eyebrow, color: N.teal }}>{title as string} · {(list as Physician[]).length}</div>}
+              {title && <div style={{ ...eyebrow, color: N.tealText }}>{title as string} · {(list as Physician[]).length}</div>}
               <PhysicianIdGrid list={list as Physician[]} onOpen={setDoc} />
             </section>
           ))}
