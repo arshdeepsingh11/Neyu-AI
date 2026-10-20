@@ -3390,7 +3390,7 @@
           }
         },
         {
-          "name": "App privacy page",
+          "name": "Privacy Policy: phone app section",
           "event": [
             {
               "listen": "test",
@@ -3398,7 +3398,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('not indexed', () => pm.expect(pm.response.text()).to.include('noindex'));"
+                  "pm.test('has the phone app section', () => pm.expect(pm.response.text()).to.include('id=\"app\"'));"
                 ]
               }
             }
@@ -3416,15 +3416,401 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/app-privacy",
+              "raw": "{{baseUrl}}/privacy",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "app-privacy"
+                "privacy"
               ]
             },
             "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 \u00b7 Legal and consent (Phase 8)",
+      "description": "Privacy Policy, Terms, Neyu AI notice, Cookies, Accessibility; policy versions patients agree to; the anonymous statistics switch.",
+      "item": [
+        {
+          "name": "Page /privacy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('canonical link', () => pm.expect(pm.response.text()).to.include('rel=\"canonical\"'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/privacy",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "privacy"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Page /terms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('canonical link', () => pm.expect(pm.response.text()).to.include('rel=\"canonical\"'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/terms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "terms"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Page /ai-notice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('canonical link', () => pm.expect(pm.response.text()).to.include('rel=\"canonical\"'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai-notice",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-notice"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Page /cookies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('canonical link', () => pm.expect(pm.response.text()).to.include('rel=\"canonical\"'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cookies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cookies"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Page /accessibility",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('canonical link', () => pm.expect(pm.response.text()).to.include('rel=\"canonical\"'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accessibility",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accessibility"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Sign in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/auth/sign-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "auth",
+                "sign-in"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Policy review: anything new to agree to?",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has needed + policies', () => { const j = pm.response.json(); pm.expect(j).to.have.property('needed'); pm.expect(j.policies).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/privacy/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "privacy",
+                "review"
+              ]
+            },
+            "description": "True when the Terms or Privacy Policy changed since the patient agreed."
+          }
+        },
+        {
+          "name": "Policy review: I agree",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('nothing left to review', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().needed).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/privacy/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "portal",
+                "privacy",
+                "review"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Visit not counted when statistics are off",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('skipped', () => pm.expect(pm.response.json().skipped).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "neyu_stats=off"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/log-visit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "log-visit"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"path\": \"/postman-stats-off\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         }
       ]
