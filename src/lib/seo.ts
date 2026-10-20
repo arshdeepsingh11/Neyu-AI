@@ -6,7 +6,7 @@
 import type { Metadata } from "next";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
 
-export type PageKind = "page" | "specialty" | "test" | "service" | "tool" | "about" | "contact" | "collection";
+export type PageKind = "page" | "specialty" | "test" | "service" | "tool" | "about" | "contact" | "collection" | "legal";
 
 export interface PageSeo {
   title: string;        // ≤ 60 characters, shown in search results
@@ -19,6 +19,16 @@ export interface PageSeo {
 const B = " | NEYU Health";
 
 export const PAGES: Record<string, PageSeo> = {
+  "/privacy": { title: "Privacy Policy" + B, crumb: "Privacy Policy", kind: "legal",
+    description: "How NEYU Health collects, uses, shares and protects personal and health information on the website, in My Health Space and in the NEYU app." },
+  "/terms": { title: "Terms of Use" + B, crumb: "Terms of Use", kind: "legal",
+    description: "The terms for using neyuhealth.com, My Health Space, Neyu and the NEYU app: accounts, your data, safe use, emergencies and Alberta law." },
+  "/ai-notice": { title: "Neyu AI Notice — How Our AI Works" + B, crumb: "Neyu AI notice", kind: "legal",
+    description: "What Neyu, the NEYU Health AI companion, does and doesn't do, what information it uses, its limits and how to turn its access to your records off." },
+  "/cookies": { title: "Cookies" + B, crumb: "Cookies", kind: "legal",
+    description: "Every cookie NEYU Health uses, what it does and how long it lasts. No advertising cookies or third-party trackers. Turn anonymous statistics off here." },
+  "/accessibility": { title: "Accessibility Statement" + B, crumb: "Accessibility", kind: "legal",
+    description: "NEYU Health aims to meet WCAG 2.1 AA on its website, My Health Space and app. How we test, known limits, and how to get help or report a barrier." },
   "/": { title: "NEYU Health — Calgary Cardiology & AI-Guided Care", crumb: "Home", kind: "page",
     description: "Calgary cardiology and internal medicine clinic with AI-guided care: heart testing, a virtual hypertension clinic, at-home blood tests and genomics." },
   "/about": { title: "About NEYU Health" + B, crumb: "About", kind: "about",

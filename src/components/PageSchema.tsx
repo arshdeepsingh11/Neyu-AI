@@ -69,7 +69,7 @@ export default function PageSchema({ path }: { path: string }) {
   const { about, faq, extra } = pageFacts(path);
   const specialty = SPECIALTY_TYPE[path.split("/").pop() || ""];
   const page: Record<string, unknown> = {
-    "@type": p.kind === "contact" ? "ContactPage" : p.kind === "about" ? "AboutPage" : p.kind === "collection" ? "CollectionPage" : "MedicalWebPage",
+    "@type": p.kind === "legal" ? "WebPage" : p.kind === "contact" ? "ContactPage" : p.kind === "about" ? "AboutPage" : p.kind === "collection" ? "CollectionPage" : "MedicalWebPage",
     "@id": `${url}#page`, url, name: p.title, description: p.description, inLanguage: "en-CA",
     isPartOf: { "@id": `${SITE_URL}/#website` }, publisher: { "@id": `${SITE_URL}/#org` }, breadcrumb: breadcrumbs(path),
     ...(about ? { about } : {}), ...(specialty && path.startsWith("/specialties/") ? { specialty } : {}),
