@@ -4,9 +4,9 @@
 //
 // • Makes sure the NEYU organization exists (also created by the migration).
 // • Creates the first SUPER ADMIN staff account and gives it the super_admin role.
-//     SEED_ADMIN_EMAIL     default: admin@neyuhealth.com
+//     SEED_ADMIN_EMAIL     default: SUPER_ADMIN_USERNAME from .env, else admin@neyuhealth.com
 //     SEED_ADMIN_NAME      default: NEYU Super Admin
-//     SEED_ADMIN_PASSWORD  if empty, a strong password is generated and printed ONCE.
+//     SEED_ADMIN_PASSWORD  default: SUPER_ADMIN_PASSWORD from .env, else a strong password is generated and printed ONCE.
 //   Running again never changes an existing admin's password.
 // • Gives every existing patient default email preferences (reminders on, news off).
 //
@@ -52,15 +52,19 @@ async function main() {
   if (!role) throw new Error("Built-in roles are missing — run `npx prisma migrate deploy` (or `migrate dev`) first.");
 
   // 2 · First super admin
-  const email = (process.env.SEED_ADMIN_EMAIL || "admin@neyuhealth.com").trim().toLowerCase();
-  const name = process.env.SEED_ADMIN_NAME || "NEYU Super Admin";
+  // With SUPER_ADMIN_USERNAME/PASSWORD in .env (production), the seed uses that same account,
+  // so there is only one super admin and its password is the one in .env.
+  const envAdmin = (process.env.SUPER_ADMIN_USERNAME || "").trim() && (process.env.SUPER_ADMIN_PASSWORD || "").length >= 8;
+  const email = (process.env.SEED_ADMIN_EMAIL || (envAdmin ? process.env.SUPER_ADMIN_USERNAME : "") || "admin@neyuhealth.com").trim().toLowerCase();
+  const name = process.env.SEED_ADMIN_NAME || (envAdmin ? process.env.SUPER_ADMIN_NAME : "") || "NEYU Super Admin";
   let admin = await prisma.staffUser.findUnique({ where: { email } });
   let printed = null;
   if (!admin) {
-    const pw = process.env.SEED_ADMIN_PASSWORD || strongPassword();
+    const fromEnv = envAdmin && !process.env.SEED_ADMIN_EMAIL;
+    const pw = process.env.SEED_ADMIN_PASSWORD || (fromEnv ? process.env.SUPER_ADMIN_PASSWORD : "") || strongPassword();
     if (pw.length < 12) throw new Error("SEED_ADMIN_PASSWORD must be at least 12 characters.");
     admin = await prisma.staffUser.create({ data: { email, name, passwordHash: await hashPassword(pw), status: "active" } });
-    if (!process.env.SEED_ADMIN_PASSWORD) printed = pw;
+    if (!process.env.SEED_ADMIN_PASSWORD && !fromEnv) printed = pw;
   }
   await prisma.membership.upsert({
     where: { staffId_orgId_roleId: { staffId: admin.id, orgId: org.id, roleId: role.id } },
