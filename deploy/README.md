@@ -1,70 +1,36 @@
-# NEYU Health — go-live on the on-prem server (neyuhealth.com)
+# NEYU Health — server (neyuhealth.com)
 
-**Stack:** Next.js 15 (Node 20 LTS), Prisma + PostgreSQL 16, PM2, Nginx, Let's Encrypt. Repo: `arshdeepsingh11/Neyu-AI`, branch **`japanese-style`**.
+**Stack:** Next.js 15 on Node 22, Prisma + PostgreSQL 16, Redis (cache + job queue), PM2 cluster, Nginx, Let's Encrypt.
+Repo `arshdeepsingh11/Neyu-AI`, branch **`japanese-style`**.
 
-## 1. Server (Ubuntu 22/24, 2 vCPU, 4 GB RAM, 40 GB disk is enough to start)
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs nginx git certbot python3-certbot-nginx postgresql-16 postgresql-client-16
-sudo npm i -g pm2
-sudo mkdir -p /var/www/neyu /var/lib/neyu && sudo chown -R $USER /var/www/neyu /var/lib/neyu
-git clone -b japanese-style https://github.com/arshdeepsingh11/Neyu-AI.git /var/www/neyu
-```
+| Task | How |
+|---|---|
+| **First go-live (SQLite → PostgreSQL)** | **[GO-LIVE.md](GO-LIVE.md)**: the full runbook, step by step |
+| Update the site later | `cd /var/www/neyu && bash deploy/deploy.sh` (no downtime) |
+| Is everything OK? | `bash deploy/check.sh` (reads only) |
+| Email check | `npm run email:test -- someone@example.com` |
+| Backups | `deploy/backup.sh` (daily cron, database + report files) |
+| Monitoring and alerts | [MONITORING.md](MONITORING.md) |
 
-### PostgreSQL (once)
-```bash
-sudo -u postgres psql -c "CREATE USER neyu WITH PASSWORD 'STRONG_PASSWORD';"
-sudo -u postgres psql -c "CREATE DATABASE neyu OWNER neyu;"
-```
-Put the same password in `DATABASE_URL` in `.env`. PostgreSQL listens on localhost only (default) — keep it that way.
+## Files
 
-### Moving from the old SQLite file (one time, Phase 9)
-```bash
-pm2 stop neyu-health                                   # short maintenance window
-cp /var/lib/neyu/neyu.db /var/backups/neyu-before-postgres.db
-npx prisma migrate deploy                              # creates all tables
-npm run db:import -- /var/lib/neyu/neyu.db             # copies + verifies every table
-npm run db:seed                                        # first super admin (password printed once)
-bash deploy/deploy.sh
-```
-Keep the SQLite file for 30 days as a fallback.
+| File | What |
+|---|---|
+| `GO-LIVE.md` | go-live runbook (also sent as PDF) |
+| `make-env.sh` | writes the production `.env`, creates the PostgreSQL user/database, carries over old keys |
+| `check.sh` | server and site check: software, `.env`, database, Redis, encryption key, internet access, backups, HTTPS |
+| `deploy.sh` | pull → install → migrate → build → zero-downtime reload |
+| `ecosystem.config.js` | PM2: one app copy per CPU core (`NEYU_INSTANCES=max`, needs Redis); only copy 0 runs the background worker |
+| `nginx-neyuhealth.conf` | HTTPS, www → neyuhealth.com, caching, gzip, sign-in rate guard, health check |
+| `postgresql-neyu.conf` | PostgreSQL 16 settings for 2 vCPU / 4 GB RAM |
+| `backup.sh` | daily `pg_dump` + report files, keeps 30 days |
+| `env.production.example` | every setting explained |
 
-## 2. Secrets
-Copy `deploy/env.production.example` to `/var/www/neyu/.env` and fill it in. Arsh sends the real values **privately** (not email/chat in plain text). `chmod 600 .env`.
+## Rules
 
-## 3. Build and start
-```bash
-cd /var/www/neyu && bash deploy/deploy.sh
-pm2 startup   # follow the printed command, so it starts after reboot
-```
-
-## 4. Domain + HTTPS
-- DNS: `A neyuhealth.com → server public IP`, `CNAME www → neyuhealth.com`.
-- `sudo cp deploy/nginx-neyuhealth.conf /etc/nginx/sites-available/neyuhealth.com && sudo ln -s /etc/nginx/sites-available/neyuhealth.com /etc/nginx/sites-enabled/`
-- `sudo certbot --nginx -d neyuhealth.com -d www.neyuhealth.com && sudo nginx -t && sudo systemctl reload nginx`
-- Firewall: open 80 and 443 only. Port 3000 stays private.
-- No public IP? Use Cloudflare Tunnel to `http://localhost:3000` instead of steps above.
-
-## 5. Daily jobs (crontab -e)
-```
-0 6 * * *   curl -s -H "Authorization: Bearer $CRON_SECRET" https://neyuhealth.com/api/cron/daily > /dev/null
-15 2 * * *  /var/www/neyu/deploy/backup.sh
-```
-(Put the real CRON_SECRET value in the cron line.)
-
-## 6. Check after launch
-- https://neyuhealth.com loads, https://neyuhealth.com/robots.txt and /sitemap.xml work.
-- Sign up in My Health, receive the email code, add a report, create a Doctor Report PDF.
-- `/admin` login works.
-- Submit `https://neyuhealth.com/sitemap.xml` in Google Search Console and Bing Webmaster Tools.
-
-## Updates later
-`cd /var/www/neyu && bash deploy/deploy.sh`
-
-## 7. Performance (Phase 5 — for the PostgreSQL + Redis version)
-Sized for up to 5,000 visitors a day (about 100 people at once in the busiest hour).
-1. PostgreSQL settings: `sudo cp deploy/postgresql-neyu.conf /etc/postgresql/16/main/conf.d/neyu.conf && sudo systemctl restart postgresql`, then `sudo -u postgres psql -d neyu -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"`.
-2. Redis: `sudo apt install -y redis-server` and `REDIS_URL=redis://127.0.0.1:6379` in `.env`.
-3. One app copy per CPU core: `NEYU_INSTANCES=max` in `.env` (needs Redis), then `pm2 delete neyu-health && pm2 start deploy/ecosystem.config.js && pm2 save`. Later updates use `pm2 reload` (no downtime).
-4. Nginx: the new `deploy/nginx-neyuhealth.conf` (keep-alive to the app, caching for pictures/videos, sign-in rate guard, real visitor address).
-5. Monitoring: `deploy/MONITORING.md` (uptime check on `/api/v1/health`, optional `/api/v1/metrics`).
-6. Load test on a staging copy (never the live database): `loadtest/README.md`.
+- `.env` lives only on the server (`chmod 600`) and in the company password manager. Never in Git, chat or email.
+- `TOKEN_ENC_KEY` never changes: it opens saved wearable sign-ins and every report file.
+- After editing `.env`: `cp .env .next/standalone/.env && pm2 reload neyu-health`.
+- Ports 3000, 5432 and 6379 stay on localhost. Only 22, 80, 443 are open.
+- Never run `npm run db:demo` or `loadtest/` against the live database (load tests: a staging copy only, see `loadtest/README.md`).
+- More than one app server later: set `RUN_WORKER=0` on the extra ones and run `npm run worker` on one machine.
