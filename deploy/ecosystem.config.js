@@ -11,8 +11,8 @@ const path = require("path");
 
 function fromEnvFile(key) {
   try {
-    const line = fs.readFileSync(path.join(__dirname, "..", ".env"), "utf8").split(/\r?\n/).find((l) => l.startsWith(key + "="));
-    return line ? line.slice(key.length + 1).replace(/^["']|["']$/g, "").trim() : undefined;
+    const line = fs.readFileSync(path.join(__dirname, "..", ".env"), "utf8").split(/\r?\n/).map((l) => l.trim()).filter((l) => l.startsWith(key + "=")).pop();
+    return line ? line.slice(key.length + 1).trim().replace(/^["']|["']$/g, "") : undefined;
   } catch { return undefined; }
 }
 const redis = process.env.REDIS_URL || fromEnvFile("REDIS_URL");
