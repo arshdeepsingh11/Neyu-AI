@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { track, labelOf } from "@/lib/track";
+import { statsAllowed } from "@/lib/statsConsent";
 
 // Renders nothing. Logs a page view on every route change, a click whenever a visitor
 // follows a link to another site (e.g. BioAro Labs), and — for Insights — which buttons
@@ -13,6 +14,7 @@ export default function PageVisitTracker() {
 
   useEffect(() => {
     if (!pathname || pathname.startsWith("/admin") || pathname.startsWith("/share/")) return;
+    if (!statsAllowed()) return; // turned off on /cookies, or Do Not Track / Global Privacy Control
     fetch("/api/log-visit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -36,7 +38,7 @@ export default function PageVisitTracker() {
         track("click", labelOf(hit), target);
       }
       const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
-      if (!a) return;
+      if (!a || !statsAllowed()) return;
       let url: URL;
       try { url = new URL(a.href, window.location.href); } catch { return; }
       if (!/^https?:$/.test(url.protocol) || url.host === window.location.host) return;

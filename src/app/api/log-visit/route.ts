@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrCreateSessionId } from "@backend/session";
 import { logPageVisit, logOutboundClick } from "@backend/logging";
 import { rateLimit } from "@backend/rateLimit";
+import { requestOptedOut } from "@/lib/statsConsent";
 
 // POST { path, referrer }            — a page view
 // POST { outbound: url, from: path } — a click to another site (partner links etc.)
@@ -18,6 +19,8 @@ export async function POST(req: NextRequest) {
   if (!isOutbound && (!path || typeof path !== "string")) {
     return NextResponse.json({ error: "Missing path" }, { status: 400 });
   }
+  // The visitor turned statistics off (/cookies) or the browser sends Global Privacy Control.
+  if (requestOptedOut(req)) return NextResponse.json({ ok: true, skipped: true });
   // Staff pages are not visitor activity.
   if (!isOutbound && (path.startsWith("/admin") || path.startsWith("/share/"))) return NextResponse.json({ ok: true });
 

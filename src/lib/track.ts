@@ -1,14 +1,15 @@
 // Anonymous website interest signals for Insights: what people search and click.
 // Never on staff pages, share links or My Health Space; never when the browser asks not to
 // be tracked (Do Not Track / Global Privacy Control). No names, no form contents.
+import { statsAllowed } from "@/lib/statsConsent";
+
 const recent = new Map<string, number>();
 
 export function track(type: "search" | "click", label: string, target?: string) {
   if (typeof window === "undefined") return;
   const path = window.location.pathname;
   if (/^\/(admin|share|my-health|connect|app-start)(\/|$)/.test(path)) return;
-  const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
-  if (nav.doNotTrack === "1" || nav.globalPrivacyControl === true) return;
+  if (!statsAllowed()) return; // Do Not Track, Global Privacy Control or turned off on /cookies
   const clean = label.replace(/\s+/g, " ").trim().slice(0, 80);
   if (clean.length < 2) return;
   const key = `${type}|${clean}|${target || ""}`;
