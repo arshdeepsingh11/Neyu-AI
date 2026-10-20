@@ -2,6 +2,7 @@
 // Controlled by PORTAL_SIGNUP_OPEN (default open). Set it to "false" to
 // close public sign-up before the HIA Privacy Impact Assessment clears.
 
+import { LEGAL } from "@/lib/legal";
 import { NextResponse } from "next/server";
 import { prisma } from "@backend/db";
 import { sendVerificationCode } from "@backend/emailVerification";
@@ -25,12 +26,15 @@ export async function POST(req: Request) {
     if (!isValidEmail(email)) throw new HttpError(400, "Please enter a valid email address.");
     const pwErr = passwordProblem(password, email);
     if (pwErr) throw new HttpError(400, pwErr);
-    if (b.consent !== true) throw new HttpError(400, "Please agree to the privacy terms to continue.");
+    if (b.consent !== true) throw new HttpError(400, `Please confirm you are ${LEGAL.minAge} or older and agree to the Terms of Use and Privacy Policy.`);
 
     let dateOfBirth: Date | null = null;
     if (b.dateOfBirth) {
       const d = new Date(String(b.dateOfBirth) + "T00:00:00Z");
       if (isNaN(d.getTime()) || d > new Date() || d.getUTCFullYear() < 1900) throw new HttpError(400, "Please check your date of birth.");
+      // My Health Space is for adults (Privacy Policy → Age). Younger patients: care through the clinic with a parent.
+      const now = new Date(), adultOn = new Date(Date.UTC(d.getUTCFullYear() + LEGAL.minAge, d.getUTCMonth(), d.getUTCDate()));
+      if (adultOn > now) throw new HttpError(400, `My Health Space is for people ${LEGAL.minAge} and older. For care for a child or teen, please call the clinic.`);
       dateOfBirth = d;
     }
     const timezone = typeof b.timezone === "string" && b.timezone.length < 60 && Intl.supportedValuesOf?.("timeZone").includes(b.timezone) ? b.timezone : "America/Edmonton";
