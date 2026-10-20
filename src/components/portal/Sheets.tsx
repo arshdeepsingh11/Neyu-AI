@@ -101,7 +101,7 @@ function AlbaSheet({ ask }: { ask?: string }) {
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}><span style={{ width: 36, height: 36, borderRadius: 18, background: C.lav, color: C.lavMid, display: "flex", alignItems: "center", justifyContent: "center" }}><NIcon name="ph-sparkle" size={19} tone="currentColor" /></span><h2 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>Ask Neyu</h2></div>
-      <p style={{ margin: "0 0 18px", fontSize: 14, lineHeight: 1.5, color: C.muted }}>Neyu explains your data using the sources you've allowed. It doesn't diagnose or replace your care team.</p>
+      <p style={{ margin: "0 0 18px", fontSize: 14, lineHeight: 1.5, color: C.muted }}>Neyu explains your data using the sources you've allowed. It doesn't diagnose or replace your care team. <a href="/ai-notice" target="_blank" rel="noopener" style={{ color: C.teal }}>How Neyu works</a></p>
       {msgs.length === 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <span style={{ fontSize: 13, color: C.muted }}>Ask Neyu about you</span>
