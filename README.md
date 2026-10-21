@@ -9,83 +9,236 @@
   <img alt="PostgreSQL 16" src="https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white">
   <img alt="Redis" src="https://img.shields.io/badge/Redis-queue%20%2B%20cache-dc382d?style=for-the-badge&logo=redis&logoColor=white">
   <img alt="AI" src="https://img.shields.io/badge/AI-Neyu%20%C2%B7%20Gemini-8e7cf0?style=for-the-badge&logo=googlegemini&logoColor=white">
+  <img alt="Tests" src="https://img.shields.io/badge/checks-608%20passing-22c55e?style=for-the-badge">
 </p>
 
-<h3 align="center">An AI-enabled health platform for cardiology, prevention and longevity — built in Calgary, Alberta.</h3>
+<h3 align="center">An AI-enabled health platform for cardiology, prevention and longevity, built in Calgary, Alberta.</h3>
 
 <p align="center">
-  <b><a href="https://neyuhealth.com">🌐 neyuhealth.com</a></b> &nbsp;·&nbsp;
-  <a href="https://neyuhealth.com/my-health">My Health Space</a> &nbsp;·&nbsp;
-  <a href="#-how-neyu-works">Architecture</a> &nbsp;·&nbsp;
-  <a href="#-privacy--security-by-design">Privacy</a> &nbsp;·&nbsp;
-  <a href="#-roadmap">Roadmap</a>
+  <b><a href="https://neyuhealth.com">neyuhealth.com</a></b> &nbsp;·&nbsp;
+  <a href="#platform-overview">Overview</a> &nbsp;·&nbsp;
+  <a href="#neyu-ai">Neyu AI</a> &nbsp;·&nbsp;
+  <a href="#architecture">Architecture</a> &nbsp;·&nbsp;
+  <a href="#security-and-privacy">Security</a> &nbsp;·&nbsp;
+  <a href="#performance">Performance</a> &nbsp;·&nbsp;
+  <a href="#quality-assurance">Quality</a>
 </p>
 
 ---
 
-## ✦ What NEYU is
+## Platform overview
 
-NEYU brings a cardiology clinic, a patient's own health data and an AI companion into one place.
-
-| | For patients | For the clinic |
-|---|---|---|
-| **See** | Labs, wearables, blood pressure and visits in one timeline — *My Health Space* | Every patient, referral, request and AI conversation — the *Admin Console* |
-| **Understand** | **Neyu**, the AI companion, explains results in plain language and prepares visit questions | Neyu flags emergency-sounding symptom checks for review first |
-| **Act** | Book, prepare for visits, follow a protocol, earn streaks | Send reports, manage referrals and appointments, by role |
-| **Control** | Choose which sources Neyu can read · download everything · delete the account | Every access is logged; sensitive records open only with a written reason |
-
-> **Neyu never diagnoses.** It explains, organises and points to care. Anything that sounds like an emergency gets *“call 911”* first — on the patient side and on the server.
+NEYU Health connects four things that are usually separate: a specialist clinic's public website, each patient's own health record, the clinic's operations console and an AI companion (**Neyu**) that works across all three.
 
 <p align="center"><img src="docs/assets/neyu-stats.svg" alt="Platform at a glance" width="100%"></p>
 
-## ✦ How NEYU works
+| Product | Users | What it does |
+|---|---|---|
+| **Website** · 58 pages | the public | 10 specialty pages, 5 diagnostic services, virtual care, the Virtual Hypertension Clinic, membership, packages, at-home care, physicians, referral centre, and 15 AI tools (symptom check, lab explainer, visit prep and more) |
+| **My Health Space** · 12 screens | patients | one record for labs, reports from any provider, wearables, blood pressure, food, goals, appointments and family; Neyu explains it all in plain language |
+| **Admin Console** · 14 screens | clinic staff | patients (360° view), referrals, service requests, inbox, AI activity review, visitors, insights, analytics, privacy requests, audit log, staff and roles |
+| **NEYU phone app** | patients | iPhone and Android app around My Health Space, with Apple Health, Health Connect, push notifications, Face ID and the share sheet |
+
+> **Clinical safety rule:** Neyu never diagnoses. It explains, organises and points to care. Emergency language triggers *call 911 / go to the nearest emergency department* before any AI call, both in the browser and on the server.
+
+---
+
+## Neyu AI
+
+Neyu is built into every part of the platform, with **22 AI features** on Google Gemini. Every feature has the same safety layers and a **rules-based fallback**, so patients and staff always get a useful answer even when the AI service is slow or unavailable.
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"pie1": "#0F7A80", "pie2": "#5FD3CF", "pie3": "#8E7CF0", "pie4": "#F2A65A", "pie5": "#3B82F6", "pie6": "#94A3B8", "pie7": "#22C55E", "pieStrokeColor": "#ffffff", "pieOuterStrokeWidth": "0px"}}}%%
+pie showData
+  title AI features by audience
+  "Public website tools" : 15
+  "Inside My Health Space" : 7
+```
+
+### Public website: 15 AI tools
+
+| Tool | What it does |
+|---|---|
+| **Neyu chat** | site-wide assistant that knows the page the visitor is on; every conversation is logged for clinical review |
+| **Concierge** | understands a free-text need and routes the visitor to the right real service (it can only choose destinations that exist) |
+| **Symptom check** | free-text symptoms → structured, non-diagnostic triage suggestion (cardiology and respiratory) |
+| **Lab explainer** | explains lab values and ranges in plain language |
+| **Explain my diagnosis** | turns a diagnosis name into a clear explanation with questions to ask |
+| **Visit prep** | builds the patient's question list and a checklist for a visit |
+| **Referral autofill** · **Referral generator** | extract the structured referral form from a physician's free-text note |
+| **Physician match** | suggests the right specialist for a described need |
+| **Longevity risk** | explains a guideline-based risk score |
+| **Assessments** | write-ups for the Longevity, Genomics and Longevity Lab assessments (scores computed from published guidelines; the AI only explains them) |
+| **Genomics quiz** | recommends real BioAro Labs tests from the live catalogue |
+| **Nutrition plan** | a personal nutrition plan from goals and preferences |
+| **Nea skin: ask** · **Nea skin: match** | answers and treatment matches using only Nea's published information |
+
+### Inside My Health Space: 7 features on the patient's own data
+
+| Feature | What it does |
+|---|---|
+| **Neyu in My Health** | answers questions about the patient's *own* records, only when the patient has switched Neyu access on, and only from the sources they allow |
+| **Document reading** | a PDF or photo of any report becomes structured values plus a plain-language summary; the original file is kept unchanged and the reading is labelled as AI |
+| **Daily brief (Today)** | a short morning message from the patient's own data, local weather and air quality (ECCC weather + AQHI) |
+| **Monthly health story** | a recap of each month: what changed, what improved, what to watch |
+| **Food log** | meals logged by text or photo; Neyu tags each meal and spots gentle patterns (no calorie counting) |
+| **AI health plan** | a personal plan built from the patient's current data, refreshed on request |
+| **Doctor assessment** | the patient's data for a chosen period plus Neyu's observations and suggested questions, ready for the visit |
+
+### How every AI request is handled
+
+```mermaid
+flowchart LR
+  Q["Question or file"] --> E{"Emergency<br/>language?"}
+  E -- yes --> N["Call 911 / nearest ER<br/>shown first · no AI call"]
+  E -- no --> C{"Patient's AI<br/>switches"}
+  C -- "source off" --> X1["That source is never sent"]
+  C -- allowed --> G["Gemini with a strict<br/>clinical system prompt"]
+  G -- "slow / unavailable" --> F["Rules-based answer<br/>(always available)"]
+  G --> V["Plain-language answer<br/>with evidence · never a diagnosis"]
+  F --> V
+  V --> L[("Saved to history<br/>+ clinic AI review")]
+```
+
+| Safety layer | How it works |
+|---|---|
+| Emergency safety net | fixed keyword rules run **before** the AI and again on the server; they can't be switched off |
+| Consent | each AI permission is a recorded consent with its policy version; the patient decides which data sources Neyu may read |
+| No diagnosis | the clinical prompts forbid diagnosing; answers point to a clinician and never suggest changing a medicine |
+| Transparency | AI content is labelled as Neyu's; originals are never changed |
+| Clinical oversight | the **AI Activity** console screen shows every conversation, with emergency flags reviewed first |
+| Resilience | timeouts, one retry, tolerant JSON reading and a rules-based fallback for every feature |
+
+---
+
+## Patient experience: My Health Space
+
+| Screen | What the patient can do |
+|---|---|
+| **Today** | daily brief, today's readings, reminders and what Neyu noticed |
+| **My Health** (Health Map) | everything in one map: labs, reports, wearables, check-ins |
+| **Records** | reports from any provider; upload, scan or photograph, and Neyu reads it; share a **Doctor Report** PDF |
+| **Results** | lab results next to wearable data, with retest reminders |
+| **Trends** | any metric over 7 days to 1 year, by category |
+| **Health profile** | a complete baseline in five sections, filled automatically from devices and check-ins |
+| **Neyu Intelligence** | the monthly story and proactive "Neyu noticed" insights |
+| **Health Universe** | home blood pressure (Heart), lifestyle, family and sharing, caring for someone else, rewards and challenges |
+| **Protocol** | a personal programme with daily items and a log |
+| **Appointments** | upcoming and past visits, with visit questions |
+| **Devices** | connect Apple Health, Health Connect, Withings, Oura and WHOOP |
+| **Account** | profile, notifications, **Privacy & Data** (consents, AI switches, export, deletion) |
+
+```mermaid
+flowchart LR
+  subgraph Sources
+    A["Apple Health"]
+    H["Health Connect"]
+    W["Withings · Oura · WHOOP"]
+    U["Uploads · scans · photos"]
+    M["Manual check-ins · BP · food"]
+  end
+  Sources --> R[("Patient record<br/>PostgreSQL + encrypted files")]
+  R --> T["Today · Trends · Results"]
+  R --> I["Neyu insights · monthly story"]
+  R --> D["Doctor Report PDF · share link"]
+  R --> X["Full export (.zip) · deletion"]
+```
+
+---
+
+## Clinic operations: Admin Console
+
+| Screen | Purpose |
+|---|---|
+| **Overview** | today's numbers, open work and alerts at a glance |
+| **Patients** · **Patient 360** | search patients; one record with sections that open only with permission (and a written reason where required) |
+| **Referrals** | incoming physician referrals and their status |
+| **Requests** | service requests: virtual care, hypertension clinic, packages, membership, at-home care |
+| **Inbox** | messages and follow-ups in one place |
+| **AI Activity** | every Neyu conversation, emergency flags first |
+| **Visitors** · **Analytics** · **Insights** | traffic, sources (including AI assistants such as ChatGPT and Perplexity), searches, top questions to Neyu, conversion to patients; anonymous counts only |
+| **Privacy requests** | account deletions (30-day hold) and data exports |
+| **Audit log** | every action, sign-in and refusal, with a 14-day chart and CSV export |
+| **Settings → Staff** | add staff, choose Super admin or Admin with selected features, require 2-step codes |
+
+**Roles:** Super admin · Organization admin · Clinic manager · Care staff · Physician · Support, with **22 permissions** such as `patients.record.read`, `reports.send`, `privacy.deletion.manage` and `audit.read`.
+
+---
+
+## Architecture
 
 <p align="center"><img src="docs/assets/neyu-architecture.svg" alt="NEYU Health architecture with live data flow" width="100%"></p>
 
 ```mermaid
 flowchart LR
-  subgraph People
-    P["👤 Patient<br/>My Health Space"]
-    S["🩺 Staff<br/>Admin Console"]
+  subgraph Clients
+    P["Patients<br/>web + phone app"]
+    S["Staff<br/>Admin Console"]
+    V["Visitors<br/>website"]
   end
-  subgraph NEYU["NEYU platform"]
+  subgraph Server["NEYU server"]
     direction TB
-    API["API v1<br/>validation · rate limits"]
-    RBAC{"Role check<br/>+ break-glass"}
-    AI["✨ Neyu AI"]
-    W["⚙️ Worker<br/>emails · exports · deletions"]
+    NG["Nginx<br/>HTTPS · rate guard"]
+    APP["Next.js app × CPU cores<br/>(PM2 cluster)"]
+    RBAC{"Roles +<br/>break-glass"}
+    W["Background worker<br/>BullMQ"]
   end
   DB[("PostgreSQL 16")]
   R[("Redis")]
-  F[("🔒 Encrypted files")]
-  P --> API
-  S --> RBAC --> API
-  API --> DB
-  API --> AI
-  API --> R --> W
-  W --> F
+  F[("Encrypted files")]
+  EXT["Gemini · Resend ·<br/>Firebase · Apple push ·<br/>wearable APIs"]
+  P & S & V --> NG --> APP
+  APP --> RBAC --> DB
+  APP --> R
+  R --> W
   W --> DB
-  RBAC -. every decision .-> L[["📜 Audit log"]]
+  W --> F
+  APP --> EXT
+  W --> EXT
+  RBAC -. every decision .-> AUD[["Audit log"]]
 ```
 
-## ✦ Neyu — the AI layer
+### Data model (core)
+
+62 tables across eight versioned migrations. The core relationships:
 
 ```mermaid
-flowchart LR
-  Q["Patient asks Neyu"] --> E{"Emergency words?"}
-  E -- yes --> N["Call 911 / nearest ER<br/>shown first, every time"]
-  E -- no --> C{"Allowed sources?<br/>(patient's switches)"}
-  C --> G["Gemini reads only<br/>what the patient allows"]
-  G --> X["Plain-language answer<br/>+ evidence · never a diagnosis"]
-  X --> H["Saved to history<br/>for patient & care team"]
+erDiagram
+  Organization ||--o{ Clinic : has
+  Organization ||--o{ Membership : grants
+  StaffUser ||--o{ Membership : holds
+  Role ||--o{ Membership : defines
+  Role ||--o{ RolePermission : includes
+  Permission ||--o{ RolePermission : in
+  Organization ||--o{ Patient : serves
+  Patient ||--o{ HealthDocument : uploads
+  Patient ||--o{ LabResult : has
+  Patient ||--o{ HealthReading : records
+  Patient ||--o{ DeviceConnection : connects
+  Patient ||--o{ PushDevice : registers
+  Patient ||--o{ AlbaConversation : asks
+  AlbaConversation ||--o{ AlbaMessage : contains
+  Patient ||--o{ Consent : gives
+  PolicyVersion ||--o{ Consent : versions
+  Patient ||--o{ Appointment : books
+  Patient ||--o{ HealthInsight : receives
+  Organization ||--o{ AuditEvent : logs
 ```
 
-- **Reads reports** — a photo or PDF of a lab report becomes structured values the patient confirms.
-- **Explains** — results, trends and visit prep in plain language, always with the evidence.
-- **Notices** — meaningful changes in wearables and labs become insights (the patient can switch this off).
-- **Consent first** — every AI permission change is recorded with the policy version (see Privacy).
+### Background jobs
 
-## ✦ Privacy & security by design
+| Job | Schedule | Purpose |
+|---|---|---|
+| `daily` | hourly | wearable sync, daily briefs, visit and retest reminders, push notifications |
+| `stats.warm` | every 10 min / hourly | pre-computes dashboards so the console opens instantly |
+| `visitors.backfill` | hourly | daily visitor totals |
+| `privacy.sweep` | hourly | runs deletions when the 30-day hold ends |
+| `sessions.cleanup` | nightly | removes expired sessions |
+| `email.send` · `privacy.export` | on demand | codes and reminders with retries; data-export .zip files |
+
+---
+
+## Security and privacy
 
 ```mermaid
 sequenceDiagram
@@ -94,27 +247,30 @@ sequenceDiagram
   participant Console as Admin Console
   participant API as NEYU API
   participant Log as Audit log
-  Staff->>Console: email + password
-  Console->>API: check password (scrypt)
-  API-->>Console: ask for 2-step code
+  Staff->>Console: username + password
+  Console->>API: verify (scrypt)
+  API-->>Console: 2-step code required
   Staff->>Console: 6-digit code (authenticator app)
   API->>Log: signed in · role · IP
   Staff->>Console: open a patient record
-  API-->>Console: role needs a reason (break-glass)
+  API-->>Console: this role needs a reason
   Staff->>Console: "Reviewing results for care"
   API->>Log: reason saved · access open 60 min
   API-->>Console: record
 ```
 
-| Layer | What protects the data |
+| Layer | Protection |
 |---|---|
-| **Sign-in** | Own account per staff member · scrypt passwords · 2-step code (TOTP) · lock after 5 wrong tries · 8-hour sessions, only a hash of the token is stored |
-| **Roles** | 6 roles × 19 permissions · nobody can hand out more power than they have · last super admin can't be removed |
-| **Break-glass** | Roles marked *with reason* must write why before opening a record — saved in the audit log, access closes after 60 minutes |
-| **Audit** | Every view, change, export, refusal and sign-in — append-only, searchable, with a 14-day activity chart and CSV export |
-| **Files** | Reports and exports live outside the database, encrypted at rest with AES-256-GCM |
-| **Patients in control** | Consent history with policy versions · email preferences + one-click unsubscribe · full data export (.zip) · account deletion with a 30-day hold and a deletion certificate |
-| **Where data lives** | Canada · built for Alberta's *Health Information Act* and *PIPEDA* |
+| **Sign-in** | personal staff accounts · scrypt password hashing · TOTP 2-step codes · lock after repeated failures · patients verify email with a 6-digit code · only token hashes are stored |
+| **Access control** | 6 roles × 22 permissions · nobody can grant more than they hold · the last super admin can't be removed · a recovery super admin is defined in server settings |
+| **Break-glass** | sensitive records need a written reason, saved in the audit log; access closes after 60 minutes |
+| **Audit** | append-only log of every view, change, export, refusal and sign-in, including background jobs |
+| **Encryption** | HTTPS everywhere (HSTS); report files and exports encrypted at rest with AES-256-GCM; wearable sign-in tokens encrypted |
+| **Abuse protection** | rate limits on every API (shared through Redis) plus an extra Nginx guard on sign-in; same-origin checks |
+| **Patient rights** | versioned consents with re-acceptance when policies change · email preferences with one-click unsubscribe · full data export (.zip) · account deletion with a 30-day hold and a deletion certificate |
+| **Legal pages** | Privacy Policy, Terms of Use, Neyu AI notice, Cookies (statistics opt-out, honours Do Not Track / GPC) and Accessibility statement; 18+ sign-up |
+| **Accessibility** | WCAG 2.1 AA: 0 serious issues across 20 page views on desktop and phone (axe) |
+| **Jurisdiction** | data stored in Canada; designed for Alberta's *Health Information Act* and *PIPEDA* |
 
 ```mermaid
 stateDiagram-v2
@@ -122,21 +278,24 @@ stateDiagram-v2
   [*] --> Active
   Active --> DeletionRequested: patient asks (password)
   DeletionRequested --> Active: cancel within 30 days
-  DeletionRequested --> Deleted: hold ends → worker deletes data + files
+  DeletionRequested --> Deleted: hold ends → data and files removed
   Deleted --> [*]: certificate kept (counts only, no personal data)
 ```
 
-## ✦ The NEYU phone app
+---
 
-iPhone and Android app (Capacitor 8) around My Health Space and the website, built in the cloud by GitHub Actions. Setup and publishing: [`mobile/README.md`](mobile/README.md).
+## Phone app
 
-| Feature | |
+The NEYU app for iPhone and Android (Capacitor 8) opens My Health Space and adds native features. Website updates reach the app immediately, with no store update needed. Builds run in the cloud on GitHub Actions. Guide: [`mobile/README.md`](mobile/README.md).
+
+| Native feature | Details |
 |---|---|
-| Apple Health · Health Connect | read only, patient chooses the data; last 30 days, then new days when the app opens |
-| Push notifications | Firebase (Android) and Apple push sent by NEYU's own server; never health details on the lock screen |
-| Face ID · fingerprint lock | on open and after 2 minutes away; the face or fingerprint never leaves the phone |
-| Share sheet · camera | PDFs and exports to Files / Print / Mail; scan reports and meals |
-| Withings · Oura · WHOOP | one-time signed link, sign-in in the phone's browser, back to the app |
+| Apple Health · Health Connect | read-only; the patient chooses the data types; the last 30 days, then new days each time the app opens |
+| Push notifications | Firebase (Android) and Apple push, sent by NEYU's own server; no health details on the lock screen |
+| Face ID · fingerprint lock | on open and after 2 minutes away; biometrics never leave the phone |
+| Share sheet · camera | PDFs and exports to Files, Print or Mail; scan reports and meals |
+| Withings · Oura · WHOOP | sign-in in the phone's browser via a one-time link, then back to the app |
+| Offline handling | offline banner and a retry screen |
 
 ```mermaid
 sequenceDiagram
@@ -144,88 +303,123 @@ sequenceDiagram
   participant Health as Apple Health / Health Connect
   participant API as NEYU server
   participant Push as Firebase / Apple push
-  Phone->>Health: read permission (patient chooses)
+  Phone->>Health: permission (patient chooses)
   Phone->>API: connect → private sync key
-  Health-->>Phone: daily steps, sleep, heart…
+  Health-->>Phone: steps, sleep, heart rate, BP…
   Phone->>API: daily values (sync key)
   API->>Push: "Your daily brief is ready" (no health details)
-  Push-->>Phone: notification → tap opens the screen
+  Push-->>Phone: notification → opens the screen
 ```
 
-## ✦ Built to scale
+---
 
-| Need | How |
-|---|---|
-| Millions of patients | PostgreSQL 16 with indexes per query path, BRIN index on the audit log, cursor pagination everywhere in `/api/v1` |
-| Many app servers | Redis holds rate limits, sign-in guards, break-glass grants and cache — every server sees the same state |
-| Slow work off the request | BullMQ background worker with retries: emails, data exports, account deletions, hourly jobs |
-| Big files | Encrypted file storage (local disk today, S3-compatible next) — the database keeps only a key |
-| Nothing single-point | Without Redis the app falls back to memory and keeps running; schedules re-register themselves |
+## Performance
+
+Load-tested with k6 against **one year of production-sized data** (1.8 million visitors, 5.4 million page views, 15,000 patients). Mix: 75 % website visitors, 22 % patients, 3 % staff, **200 users at the same time**, which is twice the expected peak for 5,000 visitors a day. Errors: **0**.
 
 ```mermaid
-pie showData
-  title Codebase by area (lines)
-  "UI components" : 21653
-  "Backend services" : 6566
-  "Pages & API routes" : 5562
-  "Content & data" : 2524
-  "Database schema & migrations" : 2693
-  "Shared libraries" : 1382
-  "Tools & scripts" : 681
+%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#BFE9E7, #0F7A80"}}}}%%
+xychart-beta
+  title "95th-percentile response time vs target (seconds)"
+  x-axis ["Website pages", "My Health Space", "Console dashboards"]
+  y-axis "seconds" 0 --> 2
+  bar [0.8, 1.0, 2.0]
+  bar [0.23, 0.50, 0.76]
 ```
 
-## ✦ Quality
+<sub>Light bars: target · dark bars: measured.</sub>
+
+| Technique | Effect |
+|---|---|
+| PostgreSQL 16 tuned, with an index for each query path and a BRIN index on the audit log | fast lookups at millions of rows |
+| Pre-computed daily totals and worker-warmed dashboard cache | a year of analytics opens in under a second |
+| Redis shared state (rate limits, sign-in guards, cache, job queue) | any number of app copies behave as one |
+| PM2 cluster, one app copy per CPU core, zero-downtime reloads | more traffic per server; updates without dropping requests |
+| Cursor pagination in `/api/v1`; files outside the database | constant-time pages; a small, fast database |
+| Health and metrics endpoints (`/api/v1/health`, Prometheus `/api/v1/metrics`) | uptime monitoring and alerts |
+| Graceful fallback without Redis | the app keeps running if Redis is down |
+
+---
+
+## Quality assurance
+
+**608 automated checks, all passing**, plus accessibility and load tests.
+
+```mermaid
+%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#0F7A80"}}}}%%
+xychart-beta horizontal
+  title "Automated checks by area"
+  x-axis ["Phone app", "API collection", "Platform core", "Patient API", "Admin & insights", "Staff sign-in", "Legal & consent", "Performance"]
+  y-axis "checks" 0 --> 140
+  bar [137, 116, 101, 80, 78, 38, 31, 27]
+```
 
 | Suite | Checks | Covers |
 |---|---:|---|
-| Staff sign-in | 38 | passwords, 2-step codes, lock-outs, replay protection, old shared password switch-off |
-| Phase 3 platform | 101 | break-glass, staff management, audit, privacy, storage, Redis, worker, API v1 |
-| Phase 4 admin & insights | 78 | .env super admin, admins with chosen features, live access changes, Insights, SEO |
-| Phase 5 performance | 27 | one year of data: dashboards, daily totals, background jobs, health & metrics, caching |
-| Phase 6 phone app — server | 67 | push to Android + iPhone (mock Firebase / Apple, signed keys checked), phones removed when gone, Health Connect / Apple Health sync, one-time sign-in links, daily brief on the phone |
-| Phase 6 health data mapping | 19 | Apple Health / Health Connect → daily values: units, local days, sleep stages, naps |
-| Phase 6 app in a browser | 51 | iPhone + Android with mocked phone features: connect, notifications, Face ID lock, share sheet, app links, offline |
-| Phase 8 legal & consent | 31 | legal pages, consent versions, policy review, 18+ rule, statistics opt-out |
-| Accessibility (axe, WCAG 2.1 AA) | 0 serious | 20 page views, desktop + phone |
+| Platform core | 101 | break-glass, staff management, audit, privacy, file storage, Redis, worker, API v1 |
 | Patient API | 80 | My Health Space end to end |
-| Postman / Newman | 116 | 81 requests across website, patient, admin, API v1, phone app and legal |
-| **Total** | **608** | all passing |
-| Load test (k6) | 200 at once | pages p95 0.23 s · My Health Space 0.50 s · dashboards 0.76 s · 0 errors |
+| API collection (Postman / Newman) | 116 | 81 requests across website, patient, admin, API v1, phone app and legal |
+| Admin and insights | 78 | recovery super admin, admins with selected features, live access changes, insights, SEO |
+| Phone app | 137 | push for Android and iPhone, device clean-up, health data sync and mapping (units, local days, sleep stages), app features in a browser |
+| Staff sign-in | 38 | passwords, 2-step codes, lock-outs, replay protection |
+| Legal and consent | 31 | legal pages, policy versions, re-acceptance, 18+ rule, statistics opt-out |
+| Performance | 27 | a year of data: dashboards, daily totals, background jobs, health and metrics, caching |
+| Accessibility (axe, WCAG 2.1 AA) | 0 serious | 20 page views, desktop and phone |
+| Load test (k6) | 200 at once | 0 errors, every target met |
 
-## ✦ Roadmap
+---
 
-| Phase | | Status |
-|---|---|---|
-| 0 · Ship the current site | Live at neyuhealth.com | ✅ Done |
-| 1 · System design | Architecture for millions of users | ✅ Done |
-| 2 · Database | PostgreSQL 16, migrations, import, seed | ✅ Done |
-| 3 · Core backend | Staff sign-in + 2-step, roles, break-glass, audit, privacy, file storage, Redis, worker, API v1 | ✅ Done |
-| 4 · Admin dashboards | Super admin + admins with chosen features, Insights, SEO / AEO / GEO on every page | ✅ Done |
-| 5 · Performance | Ready for 5,000 visitors a day: daily totals, background-warmed dashboards, cluster mode, monitoring, load tests | ✅ Done |
-| 6 · Mobile app | iPhone & Android: Apple Health, Health Connect, push, Face ID, share sheet, cloud builds | ✅ Done (store publishing after Phase 8) |
-| 7 · Devices | Apple Health · Health Connect (done in Phase 6) | ✅ Merged into 6 |
-| 8 · Legal & trust | Privacy Policy, Terms, Neyu AI notice, Cookies, Accessibility; policy versions with review; 18+ rule; statistics opt-out; WCAG AA fixes | ✅ Done (company facts to confirm in `src/lib/legal.ts`) |
-| 9 · Go live | Production rollout with DevOps | ◻ Planned |
+## Technology
 
-## ✦ Stack
+| Layer | Technology |
+|---|---|
+| Web | Next.js 15 (App Router) · React 18 · TypeScript · Tailwind CSS |
+| API | Route handlers · versioned `/api/v1` with zod validation, OpenAPI 3.1, request IDs and rate-limit headers |
+| Data | PostgreSQL 16 · Prisma 5 · Redis 7 · BullMQ |
+| AI | Google Gemini with rules-based fallbacks |
+| Files | encrypted local storage (S3-compatible driver ready) |
+| Email | Resend (SMTP) · one-click unsubscribe |
+| Mobile | Capacitor 8 · Apple HealthKit · Android Health Connect · FCM HTTP v1 · APNs |
+| Operations | Nginx · Let's Encrypt · PM2 cluster · daily backups · health and metrics endpoints |
+| Testing | Node test suites · Postman / Newman · Playwright · axe-core · k6 |
 
-**Next.js 15** (App Router) · **React 18** · **TypeScript** · **PostgreSQL 16** + **Prisma** · **Redis** + **BullMQ** · **zod** · **Google Gemini** · **Resend** (email) · **Nginx** · **PM2** · **Docker** (local services)
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"pie1": "#0F7A80", "pie2": "#5FD3CF", "pie3": "#8E7CF0", "pie4": "#F2A65A", "pie5": "#3B82F6", "pie6": "#94A3B8", "pie7": "#22C55E", "pieStrokeColor": "#ffffff", "pieOuterStrokeWidth": "0px"}}}%%
+pie showData
+  title Codebase by area (lines of code)
+  "UI components" : 22409
+  "Backend services" : 7480
+  "Pages and API routes" : 6738
+  "Database schema and migrations" : 2837
+  "Content and data" : 2524
+  "Shared libraries" : 2412
+  "Scripts and tools" : 700
+```
 
-## ✦ Repository map
+---
+
+## Repository
 
 ```
 src/app/            pages and API routes (src/app/api/v1 = versioned API)
 src/components/     website, My Health Space and Admin Console UI
 backend/            services: auth, access control, privacy, storage, queue, AI
-prisma/             schema + migrations
+prisma/             schema and migrations
 scripts/            seed, import, staff accounts, worker, storage tools
 postman/            API test collection
-mobile/             iPhone + Android app (Capacitor): native projects, setup scripts, build guide
+loadtest/           k6 load test and test-data scripts
+mobile/             iPhone and Android app (Capacitor)
 .github/workflows/  cloud builds of the phone app
-deploy/             server setup for DevOps (Nginx, PM2, backups)
-docs/               specs, design notes, LEGAL.md (keeping the legal pages correct)
+deploy/             server setup, go-live runbook, checks, backups, monitoring
+docs/               development guide, legal guide, specifications
 ```
 
-**Developers:** setup, local services and tests are in [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). Server rollout is in [`deploy/README.md`](deploy/README.md).
+| Guide | |
+|---|---|
+| Local development and tests | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) |
+| Server and go-live | [`deploy/README.md`](deploy/README.md) · [`deploy/GO-LIVE.md`](deploy/GO-LIVE.md) |
+| Monitoring and alerts | [`deploy/MONITORING.md`](deploy/MONITORING.md) |
+| Phone app | [`mobile/README.md`](mobile/README.md) |
+| Legal pages | [`docs/LEGAL.md`](docs/LEGAL.md) |
 
 <p align="center"><sub>© 2026 NEYU Health · Calgary, Alberta · <a href="https://neyuhealth.com">neyuhealth.com</a> · Neyu gives wellness information, not a diagnosis. In an emergency call 911.</sub></p>
