@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
+import { seo } from "@/lib/seo";
+import PageSchema from "@/components/PageSchema";
 import { NeyuPage } from "@/components/neyu/kit";
 import ContactPage from "@/components/neyu/pages/Contact";
 
-export const metadata: Metadata = { title: "Contact · NEYU Health", description: "Two Calgary clinics — North East and Meadow Miles. Hours, phone, fax, a digital map with the nearest clinic, and a message form." };
+export const metadata: Metadata = seo("/contact");
 
-export default function Page() {
+function Page() {
   return <NeyuPage><ContactPage /></NeyuPage>;
+}
+
+export default function SeoPage() {
+  return <><PageSchema path="/contact" /><Page /></>;
 }

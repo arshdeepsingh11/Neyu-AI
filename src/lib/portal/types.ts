@@ -117,10 +117,10 @@ export interface ReferralDTO { id: string; title: string; status: string; steps:
 export interface DeviceDTO {
   id: ProviderId; name: string; icon: string; signals: string[]; available: boolean;
   status: "off" | "pending" | "on" | "waitlist"; lastSyncAt: string | null; dataTypes: string[]; tokenHint: string | null;
-  mode: "shortcut" | "oauth" | "waitlist"; blurb: string; beta: boolean; stale: boolean; lastError: string | null;
+  mode: "shortcut" | "oauth" | "app" | "waitlist"; blurb: string; beta: boolean; stale: boolean; lastError: string | null;
   /** Last call from the phone, even when nothing was stored. */
   lastAttemptAt: string | null; lastResult: { stored: number; metrics: string[]; rejected: { field: string; reason: string }[] } | null;
-  guide: { needs: string; steps: string[]; meanwhile?: string; note?: string };
+  guide: { needs: string; steps: string[]; meanwhile?: string; note?: string; appSoon?: string };
 }
 
 export interface SettingsDTO {

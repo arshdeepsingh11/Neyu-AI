@@ -8,7 +8,7 @@ import { withPatientMutation, readJson, str, HttpError } from "@backend/apiHelpe
 export const POST = (req: Request) => withPatientMutation(async ({ patient }) => {
   const provider = str((await readJson(req)).provider, 20);
   if (!isOAuthProvider(provider)) return { stored: 0, devices: await getDevices(patient.id) };
-  if (!rateLimit(`sync:${patient.id}:${provider}`, 4, 60_000)) throw new HttpError(429, "Synced just now — try again in a minute.");
+  if (!(await rateLimit(`sync:${patient.id}:${provider}`, 4, 60_000))) throw new HttpError(429, "Synced just now — try again in a minute.");
   const c = await prisma.deviceConnection.findFirst({ where: { patientId: patient.id, provider, status: "connected" }, select: { id: true } });
   if (!c) throw new HttpError(404, "Not connected.");
   const r = await syncConnection(c.id, 7);

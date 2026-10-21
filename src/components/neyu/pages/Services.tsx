@@ -79,7 +79,7 @@ export default function ServicesPage() {
         {more === "charm" ? (
           <div key="c" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: 18, animation: "fadeUp .3s ease" }}>
             <div style={{ ...cardN, padding: "clamp(20px,3vw,30px)", display: "grid", gap: 12, alignContent: "start" }}>
-              <span style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>{charmClinic.fullName}</span>
+              <span style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>{charmClinic.fullName}</span>
               <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: N.ink2 }}>{charmClinic.intro}</p>
               <NeyuReads title="How it works" text={charmClinic.howItWorks} ask="How does the CHARM heart-failure clinic work?" />
             </div>

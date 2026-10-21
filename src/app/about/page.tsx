@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
+import { seo } from "@/lib/seo";
+import PageSchema from "@/components/PageSchema";
 import { NeyuPage } from "@/components/neyu/kit";
 import AboutPage from "@/components/neyu/pages/About";
 
-export const metadata: Metadata = { title: "About · NEYU Health", description: "The NEYU story: Alberta's first onsite exercise stress echocardiogram program, a multilingual team, and the philosophy Listen · Connect · Flourish." };
+export const metadata: Metadata = seo("/about");
 
-export default function Page() {
+function Page() {
   return <NeyuPage><AboutPage /></NeyuPage>;
+}
+
+export default function SeoPage() {
+  return <><PageSchema path="/about" /><Page /></>;
 }

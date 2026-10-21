@@ -8,7 +8,7 @@ import { NIcon } from "@/components/neyu/icons";
 
 export const C = {
   page: "#F6F4F1", side: "#F3F0EC", card: "#FFFDFB", sheet: "#FAF8F5",
-  ink: "#1D2327", ink2: "#454C52", ink3: "#3A4146", muted: "#5B6369", faint: "#737A80",
+  ink: "#1D2327", ink2: "#454C52", ink3: "#3A4146", muted: "#5B6369", faint: "#666D73",
   teal: "#3F6F7C", tealDark: "#2F5A66", tealMid: "#3B6874", tealLight: "#6EA8B6", tealWash: "#E8F2F4", tealChip: "#E1EDF0",
   lav: "#F0ECF7", lavInk: "#5F4A8A", lavMid: "#2A84E4", lavDeep: "#4E3C75",
   peach: "#FBEEE8", peachInk: "#8B4B37",

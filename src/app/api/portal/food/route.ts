@@ -21,7 +21,7 @@ export const GET = (req: Request) => withPatient(async ({ patient }) => {
 });
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient }) => {
-  if (!rateLimit(`food:${patient.id}`, 30, 10 * 60_000)) throw new HttpError(429, "That's a lot of meals at once. Please wait a few minutes.");
+  if (!(await rateLimit(`food:${patient.id}`, 30, 10 * 60_000))) throw new HttpError(429, "That's a lot of meals at once. Please wait a few minutes.");
   const b = await readJson(req, 6_000_000);
   const meal = (MEALS as readonly string[]).includes(b.meal) ? b.meal : "snack";
   let text = str(b.text, 300);

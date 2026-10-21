@@ -72,7 +72,7 @@ export default function SpecialtiesPage() {
             <a key={p.href} href={p.href} className="sx-card" style={{ ...cardN, padding: 22, display: "flex", flexDirection: "column", gap: 10, textDecoration: "none", color: N.ink }}>
               <IconTile icon={p.icon} />
               <b style={{ fontWeight: 500, fontSize: 19 }}>{p.label}</b>
-              <span style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: N.teal }}>{p.by}</span>
+              <span style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: N.tealText }}>{p.by}</span>
               <span style={{ fontSize: 14.5, lineHeight: 1.55, color: N.ink2 }}>{p.text}</span>
             </a>
           ))}

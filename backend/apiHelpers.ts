@@ -9,7 +9,10 @@ type Handler<T> = (ctx: { patient: CurrentPatient; ip: string }) => Promise<T>;
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
 function toResponse(e: unknown) {
-  if (e instanceof HttpError) return NextResponse.json({ error: e.message }, { status: e.status, headers: NO_STORE });
+  if (e instanceof HttpError) {
+    const x = e as HttpError & { code?: string; target?: string; label?: string };
+    return NextResponse.json({ error: e.message, ...(x.code ? { code: x.code, target: x.target, label: x.label } : {}) }, { status: e.status, headers: NO_STORE });
+  }
   console.error("Portal API error:", e);
   return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500, headers: NO_STORE });
 }

@@ -19,7 +19,7 @@ const FOCUS: Record<Kind, string> = {
 
 export async function POST(req: Request) {
   const { ip } = await clientMeta();
-  if (!rateLimit(`assess:${ip}`, 10, 60_000)) return NextResponse.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
+  if (!(await rateLimit(`assess:${ip}`, 10, 60_000))) return NextResponse.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   const kind: Kind = ["longevity", "genomics", "lab"].includes(body?.kind) ? body.kind : "longevity";

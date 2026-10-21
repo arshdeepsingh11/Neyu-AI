@@ -1,5 +1,6 @@
 "use client";
 
+import { nativeHealthProvider } from "@/lib/native/health";
 import React, { useEffect } from "react";
 import type { DeviceDTO, TodayDTO } from "@/lib/portal/types";
 import { usePortal } from "../context";
@@ -59,10 +60,11 @@ export default function Devices() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,300px),1fr))", gap: 16 }}>
         {data.map((d) => {
           const on = d.status === "on", pending = d.status === "pending", wait = d.status === "waitlist";
+          const soon = d.mode === "waitlist" || (d.mode === "oauth" && !d.available) || (d.mode === "app" && !nativeHealthProvider(d.id)); // Health Connect: NEYU app only
           const statusText = on ? (d.lastError ? d.lastError : d.stale ? `Last synced ${relTime(d.lastSyncAt)} — check your sync` : `Connected · Last synced ${relTime(d.lastSyncAt)}`)
-            : pending ? "Waiting for your first sync…" : wait ? "You're on the list" : d.mode === "waitlist" || (d.mode === "oauth" && !d.available) ? "Coming soon" : d.mode === "oauth" ? "One-time sign-in" : "Not connected";
+            : pending ? "Waiting for your first sync…" : wait ? "You're on the list" : soon ? (d.mode === "app" ? "In the NEYU Android app" : "Coming soon") : d.mode === "oauth" ? "One-time sign-in" : "Not connected";
           const warn = on && (d.stale || !!d.lastError);
-          const action = on || pending ? (pending ? "Finish setup" : "Manage") : wait ? "How it works" : d.mode === "waitlist" || !d.available ? "Notify me" : "Connect";
+          const action = on || pending ? (pending ? "Finish setup" : "Manage") : wait ? "How it works" : soon ? "Notify me" : "Connect";
           return (
             <article key={d.id} style={{ padding: 20, borderRadius: 20, background: C.card, border: `1px solid ${on ? (warn ? "rgba(139,75,55,.3)" : "rgba(110,168,182,.45)") : C.line}`, display: "flex", flexDirection: "column", gap: 12, transition: "border-color 300ms" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

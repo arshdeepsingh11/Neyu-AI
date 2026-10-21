@@ -13,7 +13,7 @@ import { withPatient, withPatientMutation, readJson, str, HttpError } from "@bac
 export const GET = () => withPatient(async ({ patient }) => getLifestyle(patient));
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  if (!rateLimit(`life:${patient.id}`, 120, 60_000)) throw new HttpError(429, "Slow down a little.");
+  if (!(await rateLimit(`life:${patient.id}`, 120, 60_000))) throw new HttpError(429, "Slow down a little.");
   const b = await readJson(req);
   const kind = str(b.kind, 12) as (typeof LIFESTYLE_KINDS)[number];
   if (!LIFESTYLE_KINDS.includes(kind)) throw new HttpError(400, "Unknown check-in.");

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   try {
     await assertSameOrigin();
     const { ip } = await clientMeta();
-    if (!rateLimit(`pair-claim:${ip}`, 10, 60_000)) throw new HttpError(429, "Too many tries — wait a minute.");
+    if (!(await rateLimit(`pair-claim:${ip}`, 10, 60_000))) throw new HttpError(429, "Too many tries — wait a minute.");
     const code = String((await readJson(req)).code || "").slice(0, 64);
     const row = code ? await prisma.devicePairing.findUnique({ where: { codeHash: sha256(code) } }) : null;
     if (!row) throw new HttpError(404, "This QR code isn't valid. Make a new one on your computer.");

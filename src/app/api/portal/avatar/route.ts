@@ -28,7 +28,7 @@ export const GET = () => withPatient(async ({ patient }) => {
 });
 
 export const PUT = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  if (!rateLimit(`avatar:${patient.id}`, 10, 60 * 60 * 1000)) throw new HttpError(429, "Too many uploads. Please try again later.");
+  if (!(await rateLimit(`avatar:${patient.id}`, 10, 60 * 60 * 1000))) throw new HttpError(429, "Too many uploads. Please try again later.");
   const len = Number(req.headers.get("content-length") || 0);
   if (len > MAX_BYTES) throw new HttpError(413, "Photo is too large (max 1.5 MB).");
   const buf = Buffer.from(await req.arrayBuffer());

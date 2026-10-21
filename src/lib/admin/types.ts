@@ -79,6 +79,7 @@ export interface Patient360DTO extends Omit<PatientRow, "devices"> {
   protocol: ProtocolDTO[]; devices: DeviceDTO[]; sessions: SessionDTO[];
   labsN: number; aisN: number; healthHidden: boolean; labsHidden: boolean;
   refs: RefDTO[]; timeline: TimelineDTO[]; audit: AuditDTO[]; visitorIds: string[];
+  phones: { platform: string; since: string }[]; // NEYU app installs with notifications on
 }
 
 export interface HealthRevealDTO {
@@ -120,8 +121,22 @@ export interface SettingsDTO {
 }
 
 export interface BootDTO {
-  actor: string; queueCount: number; emergencyCount: number; latestReferral: { id: string; code: string; label: string } | null;
+  actor: string; role: string; queueCount: number; emergencyCount: number; latestReferral: { id: string; code: string; label: string } | null;
   emailConfigured: boolean; hasTestData: boolean; activity: ActivityItem[];
+  // Phase 3: what this staff member may see (null perms = old shared password, everything)
+  perms?: Record<string, "full" | "reason" | "own"> | null; roles?: string[]; nav?: string[]; name?: string; isSuper?: boolean;
+  system?: { store: "redis" | "memory"; storage: string; queue: "redis" | "inline" };
+}
+
+export interface StaffRowDTO { id: string; username: string; name: string; status: string; kind: "super" | "admin"; features: string[]; twoStepRequired: boolean; twoStepOn: boolean; env: boolean; locked: boolean; lastLoginAt: string | null; createdAt: string }
+export interface StaffFeatureDTO { key: string; label: string; description: string; needs: string[] }
+export interface StaffDTO { me: string | null; features: StaffFeatureDTO[]; staff: StaffRowDTO[] }
+export interface PlatformAuditDTO { id: string; at: string; actorType: string; actor: string; role: string | null; action: string; detail: string; resource: string; subject: string | null; subjectPatientId: string | null; reason: string | null; result: string; ip: string | null }
+export interface AuditStatsDTO { days: { day: string; ok: number; denied: number }[]; last24: number; denied24: number; breakGlass7: number; activeStaff7: number; topStaff: { who: string; n: number }[]; actions: { action: string; n: number }[] }
+export interface PrivacyAdminDTO {
+  holdDays: number;
+  deletions: { id: string; patientId: string | null; patient: string; status: string; requestedBy: string; reason: string | null; requestedAt: string; scheduledFor: string; completedAt: string | null; summary: any }[];
+  exports: { id: string; patientId: string; patient: string; status: string; createdAt: string; expiresAt: string | null }[];
 }
 
 export interface SearchDTO {

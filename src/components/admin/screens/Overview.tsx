@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { OverviewDTO } from "@/lib/admin/types";
-import { useAdmin, useView } from "../context";
+import { useAdmin, useView, hasPerm } from "../context";
 import { T, S, TestTag, Failed, BlockSkeleton } from "../ui";
 import { inTab } from "./Inbox";
 
@@ -12,6 +12,7 @@ export default function Overview({ openInbox }: { openInbox: (tab: string) => vo
   const hour = Number(new Date().toLocaleString("en-CA", { timeZone: "America/Edmonton", hour: "numeric", hour12: false }));
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const q = data?.queue || [];
+  const inbox = hasPerm(a.perms, "inbox.manage"); // the queue is part of the Inbox feature
   const emergencies = q.filter((x) => x.priority === "Emergency");
   const summary: [string, string, number, boolean?][] = [
     ["urgent", "Emergency symptom checks", emergencies.length, true], ["referrals", "New referrals", q.filter((x) => inTab(x, "referrals")).length],
@@ -24,13 +25,13 @@ export default function Overview({ openInbox }: { openInbox: (tab: string) => vo
     <section data-screen-label="02 Overview" style={{ display: "flex", flexDirection: "column", gap: 28, animation: "anraFade 260ms ease-out" }}>
       <div>
         <h1 style={S.h1}>{greeting}</h1>
-        <p style={{ margin: "4px 0 0", color: T.ink2, fontSize: 16 }}>Here's what needs your attention today.</p>
+        <p style={{ margin: "4px 0 0", color: T.ink2, fontSize: 16 }}>{inbox ? "Here's what needs your attention today." : "Here's how NEYU is doing."}</p>
       </div>
 
       {loading && <><BlockSkeleton h={180} /><BlockSkeleton h={110} /><BlockSkeleton h={260} /></>}
       {error && !data && <Failed what="the overview" onRetry={reload} />}
 
-      {data && (emergencies.length > 0 ? (
+      {data && inbox && (emergencies.length > 0 ? (
         <div role="region" aria-label="Emergency queue" style={{ background: T.peach, borderRadius: 22, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, color: T.peachInk, flexWrap: "wrap" }}>
             <i className="ph-fill ph-warning-circle" style={{ fontSize: 22 }} />
@@ -61,7 +62,7 @@ export default function Overview({ openInbox }: { openInbox: (tab: string) => vo
 
       {data && (
         <>
-          <div>
+          {inbox && <div>
             <h2 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 500 }}>Needs attention</h2>
             <div style={{ ...S.card, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", overflow: "hidden" }}>
               {summary.map(([k, l, n, urgent]) => {
@@ -74,7 +75,7 @@ export default function Overview({ openInbox }: { openInbox: (tab: string) => vo
                 );
               })}
             </div>
-          </div>
+          </div>}
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 0, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}`, padding: "18px 0" }}>
             {data.metrics.map((m) => (

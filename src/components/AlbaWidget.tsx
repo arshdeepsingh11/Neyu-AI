@@ -154,7 +154,7 @@ function AlbaPanel({ mobile }: { mobile: boolean }) {
             )}
             <button onClick={() => submit()} aria-label="Send" className="hv-purple" style={{ width: 44, height: 44, border: 0, borderRadius: 10, background: "#2A84E4", color: "#FDFCFA", display: "grid", placeItems: "center", fontSize: 18, flex: "none" }}><NIcon name="ph-arrow-up" size="1em" tone="currentColor" /></button>
           </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: "#5A626A", display: "flex", gap: 6, alignItems: "center" }}><NIcon name="ph-info" size="1em" tone="currentColor" />Neyu explains; it doesn’t diagnose. In an emergency call 911.</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: "#5A626A", display: "flex", gap: 6, alignItems: "center" }}><NIcon name="ph-info" size="1em" tone="currentColor" />Neyu explains; it doesn’t diagnose. In an emergency call 911. <a href="/ai-notice" style={{ color: "inherit" }}>How Neyu works</a></div>
         </div>
       </aside>
     </>

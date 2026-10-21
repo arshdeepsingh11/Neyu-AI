@@ -2,13 +2,13 @@
 
 import React from "react";
 import type { SettingsDTO } from "@/lib/admin/types";
-import { useAdmin, useView, downloadFile } from "../context";
+import { useAdmin, useView, downloadFile, hasPerm } from "../context";
+import Staff from "./Staff";
+import { PrivacyRequests, SystemStatus } from "./PrivacyRequests";
 import { T, S, chip, Chip, Failed, BlockSkeleton } from "../ui";
 import { brand } from "@/data/content";
 
-const TABS: [string, string][] = [["clinic", "Clinic"], ["email", "Email"], ["signup", "Sign-up"], ["retention", "Data retention"], ["export", "Export"], ["roles", "Staff & Roles"]];
-const PERM: [string, number, number, number][] = [["Patients & visitors", 2, 2, 1], ["Health data & labs", 2, 2, 0], ["Protocol", 2, 2, 0], ["Appointments", 2, 2, 2], ["Referrals", 2, 1, 2], ["AI activity", 2, 2, 0], ["Audit log", 2, 0, 0], ["Settings & exports", 2, 0, 0]];
-const Phase2 = ({ big }: { big?: boolean }) => <span style={{ fontSize: big ? 11 : 10.5, fontWeight: 600, letterSpacing: big ? ".06em" : ".05em", color: T.lavInk, background: T.lavWash, padding: big ? "3px 8px" : "2px 6px", borderRadius: 6 }}>PHASE 2</span>;
+const TABS: [string, string, string?][] = [["clinic", "Clinic"], ["email", "Email"], ["signup", "Sign-up"], ["retention", "Data retention"], ["export", "Export", "exports.create"], ["roles", "Staff", "staff.invite"], ["privacy", "Privacy requests", "privacy.deletion.manage|privacy.export.manage"], ["system", "System", "platform.settings.manage"]];
 
 export default function Settings({ tab, setTab }: { tab: string; setTab: (t: string) => void }) {
   const a = useAdmin();
@@ -19,9 +19,9 @@ export default function Settings({ tab, setTab }: { tab: string; setTab: (t: str
       <h1 style={S.h1}>Settings</h1>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div role="tablist" aria-orientation="vertical" style={{ flex: "0 0 210px", display: "flex", flexDirection: "column", gap: 2 }}>
-          {TABS.map(([k, l]) => (
+          {TABS.filter(([, , need]) => !need || hasPerm(a.perms, ...need.split("|"))).map(([k, l]) => (
             <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className="h-card" style={{ height: 40, padding: "0 12px", border: "none", borderRadius: 12, background: tab === k ? T.card : "transparent", color: tab === k ? T.ink : T.ink2, boxShadow: tab === k ? "0 1px 2px rgba(29,35,39,.06)" : "none", fontSize: 14.5, fontWeight: 500, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
-              <span style={{ flex: 1 }}>{l}</span>{k === "roles" && <Phase2 />}
+              <span style={{ flex: 1 }}>{l}</span>
             </button>
           ))}
         </div>
@@ -77,7 +77,7 @@ export default function Settings({ tab, setTab }: { tab: string; setTab: (t: str
               <h2 style={{ ...S.h2, margin: "0 0 4px" }}>Data retention</h2>
               <p style={{ margin: "0 0 12px", fontSize: 13.5, color: T.faint }}>Configured by the clinic owner. Changes require the Owner role (Phase 2).</p>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}><tbody>
-                {[["Clinical records", "Retained per clinic policy after last visit"], ["Audit log", "Append-only · never deleted by staff"], ["Anonymous visitor activity", "Kept until merged or expired per policy"], ["Wearable data", "Stops syncing when consent is withdrawn"], ["Deleted accounts", "Sign-in removed at once; records kept for the retention period"]].map(([k, v]) => <tr key={k}><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}` }}>{k}</td><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}`, color: T.ink2 }}>{v}</td></tr>)}
+                {[["Clinical records", "Retained per clinic policy after last visit"], ["Audit log", "Append-only · never deleted by staff"], ["Anonymous page views, searches and clicks", "Kept 13 months, then deleted automatically"], ["Wearable data", "Stops syncing when consent is withdrawn"], ["Deleted accounts", "Sign-in removed at once; records kept for the retention period"]].map(([k, v]) => <tr key={k}><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}` }}>{k}</td><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}`, color: T.ink2 }}>{v}</td></tr>)}
               </tbody></table>
             </div>
           )}
@@ -87,25 +87,9 @@ export default function Settings({ tab, setTab }: { tab: string; setTab: (t: str
               <button onClick={() => a.act({ action: "export.system" }, { success: "System export ready", sub: "Downloaded as CSV · logged to audit", after: (r) => r.file && downloadFile(r.file) })} className="h-sand" style={{ ...S.btn2, padding: "0 16px" }}><i className="ph ph-export" />Start export</button>
             </div>
           )}
-          {tab === "roles" && (
-            <div data-screen-label="19 Staff and Roles" style={card}>
-              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}><h2 style={S.h2}>Staff &amp; Roles</h2><Phase2 big /></div>
-              <p style={{ margin: "6px 0 16px", fontSize: 14, color: T.ink2 }}>Not active yet. Today everyone signs in with the shared admin password. This is the planned permission model for individual staff accounts.</p>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 520, opacity: 0.85 }}>
-                  <thead><tr style={{ textAlign: "left", fontSize: 13, color: T.ink2 }}><th style={{ padding: "10px 0", fontWeight: 500 }}>Area</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Owner / Admin</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Clinician</th><th style={{ padding: "10px 8px", fontWeight: 500 }}>Front Desk</th></tr></thead>
-                  <tbody>
-                    {PERM.map(([l, ...c]) => (
-                      <tr key={l}><td style={{ padding: "10px 0", borderTop: `1px solid ${T.line}` }}>{l}</td>
-                        {c.map((x, i) => <td key={i} style={{ padding: "10px 8px", borderTop: `1px solid ${T.line}`, color: x ? T.tealDk : T.faint }}><span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><i className={"ph " + (x === 2 ? "ph-check-circle" : x === 1 ? "ph-circle-half" : "ph-minus-circle")} />{x === 2 ? "Full" : x === 1 ? "Limited" : "None"}</span></td>)}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p style={{ margin: "14px 0 0", fontSize: 13, color: T.faint }}>Front Desk works with appointments and referrals and has no access to health data.</p>
-            </div>
-          )}
+          {tab === "roles" && <Staff />}
+          {tab === "privacy" && <PrivacyRequests />}
+          {tab === "system" && <SystemStatus system={a.system} />}
         </div>
       </div>
     </section>

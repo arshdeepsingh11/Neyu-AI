@@ -7,6 +7,8 @@
 //   or, when sharing isn't available, opened in the built-in PDF viewer.
 // The share sheet needs a fresh tap, so when the file took a moment to build we
 // return "needs-tap" and the caller shows a small "Your PDF is ready" button.
+// Inside the NEYU app (Phase 6) the phone's own share sheet is used: no tap needed.
+import { nativeShare } from "@/lib/native/files";
 
 export const isIOS = () => typeof navigator !== "undefined" && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 export const isNeyuApp = () => typeof navigator !== "undefined" && /NeyuApp/.test(navigator.userAgent);
@@ -22,6 +24,8 @@ function download(blob: Blob, name: string) {
 
 /** Share or open the file. Call it straight from a tap. */
 export async function shareOrOpen(blob: Blob, name: string): Promise<"shared" | "opened" | "cancelled"> {
+  const n = await nativeShare(blob, name);
+  if (n) return n;
   const file = new File([blob], name, { type: blob.type || "application/pdf" });
   const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean };
   if (nav.share && nav.canShare?.({ files: [file] })) {
@@ -38,6 +42,8 @@ export async function shareOrOpen(blob: Blob, name: string): Promise<"shared" | 
 /** Save the file the right way for this device. */
 export async function saveFile(blob: Blob, name: string, opts: { fromTap?: boolean } = {}): Promise<"saved" | "shared" | "opened" | "cancelled" | "needs-tap"> {
   if (!needsShare()) { download(blob, name); return "saved"; }
+  const n = await nativeShare(blob, name);
+  if (n) return n;
   if (!opts.fromTap) return "needs-tap";
   try { return await shareOrOpen(blob, name); } catch { return "needs-tap"; }
 }

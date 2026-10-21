@@ -2,20 +2,36 @@
   "name": "neyu-mobile",
   "version": "1.0.0",
   "private": true,
-  "description": "NEYU Health mobile app \u2014 native shell (Capacitor) around neyuhealth.com",
+  "description": "NEYU Health mobile app — native shell (Capacitor 8) around the NEYU website, with push notifications, Face ID / fingerprint lock, Apple Health / Health Connect and the native share sheet",
+  "engines": { "node": ">=22" },
   "scripts": {
-    "sync": "npx cap sync",
+    "target": "node scripts/target.mjs",
+    "native": "node scripts/native-setup.mjs",
+    "sync": "npx cap sync && node scripts/native-setup.mjs",
     "android": "npx cap open android",
     "ios": "npx cap open ios",
-    "icons": "npx @capacitor/assets generate --iconBackgroundColor \"#FFFFFF\" --splashBackgroundColor \"#F7F6F2\""
+    "icons": "npx @capacitor/assets generate --android --ios --assetPath resources --iconBackgroundColor \"#FFFFFF\" --iconBackgroundColorDark \"#14181B\" --splashBackgroundColor \"#F7F6F2\" --splashBackgroundColorDark \"#14181B\"",
+    "check": "node scripts/check.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "^7.0.0",
-    "@capacitor/core": "^7.0.0",
-    "@capacitor/ios": "^7.0.0"
+    "@aparajita/capacitor-biometric-auth": "10.0.0",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/preferences": "8.0.1",
+    "@capacitor/push-notifications": "8.1.3",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4",
+    "@capgo/capacitor-health": "8.11.12"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^7.0.0"
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3"
   }
 }

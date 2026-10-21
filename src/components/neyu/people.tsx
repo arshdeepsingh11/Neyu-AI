@@ -32,7 +32,7 @@ export function PhysicianCard({ p, onOpen, active, compact }: { p: Physician; on
         <Avatar p={p} size={compact ? 52 : 60} />
         <span style={{ minWidth: 0 }}>
           <b style={{ display: "block", fontWeight: 500, fontSize: compact ? 16.5 : 18, lineHeight: 1.25, letterSpacing: "-.01em" }}>{p.name}</b>
-          <span style={{ display: "block", fontSize: 13.5, color: N.teal, marginTop: 2, lineHeight: 1.35 }}>{p.title}</span>
+          <span style={{ display: "block", fontSize: 13.5, color: N.tealText, marginTop: 2, lineHeight: 1.35 }}>{p.title}</span>
         </span>
       </span>
       <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{p.disciplines.map((d) => <span key={d} style={{ padding: "4px 10px", borderRadius: 999, background: N.line2, fontSize: 12.5, color: N.ink2 }}>{d}</span>)}</span>
@@ -55,7 +55,7 @@ export function PhysicianSheet({ p, onClose }: { p: Physician; onClose: () => vo
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
           <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 0 }}>
             <Avatar p={p} size={68} />
-            <div style={{ minWidth: 0 }}><h2 style={{ margin: 0, fontSize: 23, fontWeight: 500, letterSpacing: "-.015em" }}>{p.name}</h2><p style={{ margin: "3px 0 0", fontSize: 14.5, color: N.teal }}>{p.title}</p></div>
+            <div style={{ minWidth: 0 }}><h2 style={{ margin: 0, fontSize: 23, fontWeight: 500, letterSpacing: "-.015em" }}>{p.name}</h2><p style={{ margin: "3px 0 0", fontSize: 14.5, color: N.tealText }}>{p.title}</p></div>
           </div>
           <button onClick={onClose} aria-label="Close" style={{ width: 40, height: 40, border: `1px solid ${N.line}`, borderRadius: 20, background: "#fff", cursor: "pointer", flex: "none", display: "grid", placeItems: "center" }}><NIcon name="x" size={18} /></button>
         </div>
@@ -66,7 +66,7 @@ export function PhysicianSheet({ p, onClose }: { p: Physician; onClose: () => vo
           <span style={{ display: "flex", gap: 10 }}><NIcon name="language" size={18} tone="grad" style={{ marginTop: 1 }} />{p.languages.join(", ")}</span>
         </div>
         {p.qualifications.length > 0 && <>
-          <div style={{ marginTop: 18, fontSize: 12, letterSpacing: ".18em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>Qualifications</div>
+          <div style={{ marginTop: 18, fontSize: 12, letterSpacing: ".18em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>Qualifications</div>
           <ul style={{ margin: "10px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 8 }}>{p.qualifications.map((q) => <li key={q} style={{ display: "flex", gap: 10, fontSize: 14.5, lineHeight: 1.5, color: N.ink2 }}><NIcon name="award" size={17} tone="grad" style={{ marginTop: 2 }} />{q}</li>)}</ul>
         </>}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 22 }}>

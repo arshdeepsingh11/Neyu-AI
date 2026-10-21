@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" width="1200" height="430" role="img" aria-label="NEYU Health platform at a glance">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#071A20"/><stop offset="1" stop-color="#0F2C35"/></linearGradient>
+<style>.t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif}
+.tile{opacity:0;animation:in .8s cubic-bezier(.2,.8,.2,1) forwards}@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.bar{transform:scaleX(0);animation:grow 1.4s cubic-bezier(.2,.8,.2,1) forwards}@keyframes grow{to{transform:scaleX(1)}}</style></defs>
+<rect width="1200" height="430" rx="28" fill="url(#bg)"/>
+<text class="t" x="50" y="46" font-size="20" font-weight="700" fill="#FFFFFF">Platform at a glance</text>
+<text class="t" x="250" y="46" font-size="13.5" fill="#9BB8BE">counted from the codebase and test runs · October 2026</text>
+<g class="tile" style="animation-delay:0.00s">
+<rect x="50" y="70" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="68" y="128" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">58</text>
+<text class="t" x="68" y="156" font-size="14.5" font-weight="600" fill="#BFE9E7">pages</text>
+<text class="t" x="68" y="178" font-size="12" fill="#8FAAB0">public · patient · clinic</text>
+<rect x="68" y="196" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="68" y="196" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:0.40s;transform-origin:68px 198px"/>
+</g>
+<g class="tile" style="animation-delay:0.08s">
+<rect x="236" y="70" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="254" y="128" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">107</text>
+<text class="t" x="254" y="156" font-size="14.5" font-weight="600" fill="#BFE9E7">API endpoints</text>
+<text class="t" x="254" y="178" font-size="12" fill="#8FAAB0">incl. versioned /api/v1</text>
+<rect x="254" y="196" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="254" y="196" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:0.48s;transform-origin:254px 198px"/>
+</g>
+<g class="tile" style="animation-delay:0.16s">
+<rect x="422" y="70" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="440" y="128" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">62</text>
+<text class="t" x="440" y="156" font-size="14.5" font-weight="600" fill="#BFE9E7">database tables</text>
+<text class="t" x="440" y="178" font-size="12" fill="#8FAAB0">PostgreSQL 16</text>
+<rect x="440" y="196" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="440" y="196" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:0.56s;transform-origin:440px 198px"/>
+</g>
+<g class="tile" style="animation-delay:0.24s">
+<rect x="608" y="70" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="626" y="128" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">22</text>
+<text class="t" x="626" y="156" font-size="14.5" font-weight="600" fill="#BFE9E7">AI features</text>
+<text class="t" x="626" y="178" font-size="12" fill="#8FAAB0">Neyu · Google Gemini</text>
+<rect x="626" y="196" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="626" y="196" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:0.64s;transform-origin:626px 198px"/>
+</g>
+<g class="tile" style="animation-delay:0.32s">
+<rect x="794" y="70" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="812" y="128" font-size="30" font-weight="700" fill="#FFFFFF" letter-spacing="-1">6 · 22</text>
+<text class="t" x="812" y="156" font-size="14.5" font-weight="600" fill="#BFE9E7">roles · permissions</text>
+<text class="t" x="812" y="178" font-size="12" fill="#8FAAB0">break-glass with reasons</text>
+<rect x="812" y="196" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="812" y="196" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:0.72s;transform-origin:812px 198px"/>
+</g>
+<g class="tile" style="animation-delay:0.40s">
+<rect x="980" y="70" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="998" y="128" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">608</text>
+<text class="t" x="998" y="156" font-size="14.5" font-weight="600" fill="#BFE9E7">automated checks</text>
+<text class="t" x="998" y="178" font-size="12" fill="#8FAAB0">all passing</text>
+<rect x="998" y="196" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="998" y="196" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:0.80s;transform-origin:998px 198px"/>
+</g>
+<g class="tile" style="animation-delay:0.48s">
+<rect x="50" y="242" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="68" y="300" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">12</text>
+<text class="t" x="68" y="328" font-size="14.5" font-weight="600" fill="#BFE9E7">My Health screens</text>
+<text class="t" x="68" y="350" font-size="12" fill="#8FAAB0">patient app</text>
+<rect x="68" y="368" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="68" y="368" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:0.88s;transform-origin:68px 370px"/>
+</g>
+<g class="tile" style="animation-delay:0.56s">
+<rect x="236" y="242" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="254" y="300" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">14</text>
+<text class="t" x="254" y="328" font-size="14.5" font-weight="600" fill="#BFE9E7">console screens</text>
+<text class="t" x="254" y="350" font-size="12" fill="#8FAAB0">clinic &amp; admin</text>
+<rect x="254" y="368" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="254" y="368" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:0.96s;transform-origin:254px 370px"/>
+</g>
+<g class="tile" style="animation-delay:0.64s">
+<rect x="422" y="242" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="440" y="300" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">5</text>
+<text class="t" x="440" y="328" font-size="14.5" font-weight="600" fill="#BFE9E7">health data sources</text>
+<text class="t" x="440" y="350" font-size="12" fill="#8FAAB0">phones, watches, rings</text>
+<rect x="440" y="368" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="440" y="368" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:1.04s;transform-origin:440px 370px"/>
+</g>
+<g class="tile" style="animation-delay:0.72s">
+<rect x="608" y="242" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="626" y="300" font-size="38" font-weight="700" fill="#FFFFFF" letter-spacing="-1">2</text>
+<text class="t" x="626" y="328" font-size="14.5" font-weight="600" fill="#BFE9E7">phone platforms</text>
+<text class="t" x="626" y="350" font-size="12" fill="#8FAAB0">iPhone · Android</text>
+<rect x="626" y="368" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="626" y="368" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:1.12s;transform-origin:626px 370px"/>
+</g>
+<g class="tile" style="animation-delay:0.80s">
+<rect x="794" y="242" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="812" y="300" font-size="30" font-weight="700" fill="#FFFFFF" letter-spacing="-1">0.23 s</text>
+<text class="t" x="812" y="328" font-size="14.5" font-weight="600" fill="#BFE9E7">page p95</text>
+<text class="t" x="812" y="350" font-size="12" fill="#8FAAB0">200 users at once</text>
+<rect x="812" y="368" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="812" y="368" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:1.20s;transform-origin:812px 370px"/>
+</g>
+<g class="tile" style="animation-delay:0.88s">
+<rect x="980" y="242" width="170" height="150" rx="18" fill="#10313A" stroke="#5FD3CF" stroke-opacity=".28"/>
+<text class="t" x="998" y="300" font-size="30" font-weight="700" fill="#FFFFFF" letter-spacing="-1">AES-256</text>
+<text class="t" x="998" y="328" font-size="14.5" font-weight="600" fill="#BFE9E7">encryption at rest</text>
+<text class="t" x="998" y="350" font-size="12" fill="#8FAAB0">reports &amp; exports</text>
+<rect x="998" y="368" width="134" height="5" rx="2.5" fill="#FFFFFF" fill-opacity=".08"/>
+<rect class="bar" x="998" y="368" width="134" height="5" rx="2.5" fill="#5FD3CF" style="animation-delay:1.28s;transform-origin:998px 370px"/>
+</g>
+</svg>

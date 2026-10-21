@@ -13,7 +13,7 @@ import { N } from "@/components/neyu/kit";
 // a long page scrolls inside itself.
 const PAGE_H = "clamp(560px, 64vh, 640px)";
 const paper: React.CSSProperties = { background: "linear-gradient(180deg,#FFFFFF,#F7FAF9)", padding: "clamp(20px,3vw,34px)", display: "grid", alignContent: "start", gap: 14, height: PAGE_H, boxSizing: "border-box", overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "rgba(14,27,44,.18) transparent", fontSize: 15.5, lineHeight: 1.6, color: "#2B2F33", fontFamily: "var(--font-dm-sans), system-ui, sans-serif" };
-const kicker: React.CSSProperties = { fontFamily: "var(--font-dm-sans), system-ui, sans-serif", fontSize: 11.5, letterSpacing: ".18em", textTransform: "uppercase", color: N.teal };
+const kicker: React.CSSProperties = { fontFamily: "var(--font-dm-sans), system-ui, sans-serif", fontSize: 11.5, letterSpacing: ".18em", textTransform: "uppercase", color: N.tealText };
 
 function Left({ p, n }: { p: Paper; n: number }) {
   return (

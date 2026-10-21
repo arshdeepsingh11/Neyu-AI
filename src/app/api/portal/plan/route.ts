@@ -16,7 +16,7 @@ export const GET = () => withPatient(async ({ patient }) => {
 });
 
 export const POST = () => withPatientMutation(async ({ patient }) => {
-  if (!rateLimit(`plan:${patient.id}`, 5, 10 * 60_000)) throw new HttpError(429, "Please wait a few minutes before refreshing your plan.");
+  if (!(await rateLimit(`plan:${patient.id}`, 5, 10 * 60_000))) throw new HttpError(429, "Please wait a few minutes before refreshing your plan.");
   const [a, space] = await Promise.all([getAssessment(patient, 90), getSpace(patient)]);
   const data = { activity: a.activity, labs: a.labs.map((l) => `${l.name} ${l.value} ${l.unit} ${l.flag}`), changes: a.changes.map((c) => c.text), nutrition: a.nutrition, lifestyle: a.lifestyle, goals: a.goals, conditions: a.conditions, age: a.patient.age };
   const basedOn = space.sources.slice(0, 6);

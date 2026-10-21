@@ -60,7 +60,7 @@ export default function CityMap({ height = "auto" }: { height?: number | string 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: 18, alignItems: "stretch" }}>
       <div style={{ position: "relative", borderRadius: 26, overflow: "hidden", border: `1px solid ${N.line}`, background: "radial-gradient(120% 90% at 70% 10%, #0E2A3E 0%, #071520 55%, #050E16 100%)", minHeight: 300, height, boxShadow: "inset 0 0 80px rgba(31,167,180,.12), 0 40px 80px -50px rgba(5,14,22,.8)" }}>
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Map of Calgary showing the NEYU ${locations.map((l) => l.tag).join(" and ")} clinics${you ? ` and your area (${fsa})` : ""}`} style={{ width: "100%", height: "100%", display: "block" }} preserveAspectRatio="xMidYMid slice">
+        <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label={`Map of Calgary showing the NEYU ${locations.map((l) => l.tag).join(" and ")} clinics${you ? ` and your area (${fsa})` : ""}`} style={{ width: "100%", height: "100%", display: "block" }} preserveAspectRatio="xMidYMid slice">
           <defs>
             <pattern id="cmGrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="rgba(126,224,192,.07)" strokeWidth="1" /><circle cx="0" cy="0" r="1.3" fill="rgba(126,224,192,.25)" /></pattern>
             <filter id="cmGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
@@ -107,7 +107,7 @@ export default function CityMap({ height = "auto" }: { height?: number | string 
       </div>
       <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
         <form onSubmit={(e) => e.preventDefault()} style={{ display: "grid", gap: 8, padding: 18, borderRadius: 22, background: "linear-gradient(160deg,#FFFFFF,#F1F9F7)", border: "1px solid rgba(47,191,148,.28)" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}><NIcon name="spark" size={16} tone="grad" />Neyu · nearest clinic</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}><NIcon name="spark" size={16} tone="grad" />Neyu · nearest clinic</span>
           <label style={{ display: "grid", gap: 6, fontSize: 14, color: N.ink2 }}>Your postal code
             <input value={postal} onChange={(e) => { setPostal(e.target.value); setManual(false); }} maxLength={7} placeholder="e.g. T2J 4V3" autoComplete="postal-code" style={{ height: 48, padding: "0 14px", borderRadius: 14, border: `1px solid ${N.line}`, fontSize: 16, background: "#fff", color: N.ink }} />
           </label>

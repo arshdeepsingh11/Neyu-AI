@@ -16,7 +16,10 @@ const subscribe = (l: () => void) => { listeners.add(l); return () => { listener
 export class ApiError extends Error { constructor(msg: string, public status: number) { super(msg); } }
 
 function onUnauthorized() {
-  if (typeof window !== "undefined") window.location.href = "/my-health/sign-in?next=" + encodeURIComponent(window.location.pathname + window.location.search);
+  if (typeof window === "undefined") return;
+  // Already on a sign-in / sign-up / verify page: stay there (no "next=…sign-in…" loop).
+  if (/^\/my-health\/(sign-in|sign-up|verify)/.test(window.location.pathname)) return;
+  window.location.href = "/my-health/sign-in?next=" + encodeURIComponent(window.location.pathname + window.location.search);
 }
 
 /** JSON request. Throws ApiError with the server's friendly message. */

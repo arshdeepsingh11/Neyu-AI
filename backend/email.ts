@@ -46,7 +46,7 @@ export function explainEmailError(e: any): string {
 }
 const temporary = (e: any) => /429|421|45\d|ETIMEDOUT|ECONNRESET|ESOCKET|EAI_AGAIN|rate/i.test(`${e?.responseCode || ""} ${e?.code || ""} ${e?.message || ""}`);
 
-export async function sendMail(msg: { to: string; subject: string; text: string; html: string }) {
+export async function sendMail(msg: { to: string; subject: string; text: string; html: string; headers?: Record<string, string> }) {
   const dev = process.env.NODE_ENV !== "production";
   const printToConsole = (why: string) => console.log(`\n[DEV EMAIL — ${why}]\nTo: ${msg.to}\nSubject: ${msg.subject}\n\n${msg.text}\n`);
   if (!emailConfigured()) {
@@ -92,9 +92,9 @@ export function codeEmail(firstName: string, code: string) {
   return { subject: `${code} is your NEYU Health verification code`, text, html };
 }
 
-/** Branded plain email (invites, daily brief, reminders). */
-export function simpleEmail(title: string, paragraphs: string[], button?: { label: string; url: string }, footer = "NEYU Health · Calgary, Alberta") {
-  const text = [title, "", ...paragraphs, ...(button ? ["", `${button.label}: ${button.url}`] : []), "", footer].join("\n");
+/** Branded plain email (invites, daily brief, reminders). `unsubscribeUrl` adds the email-preferences link. */
+export function simpleEmail(title: string, paragraphs: string[], button?: { label: string; url: string }, footer = "NEYU Health · Calgary, Alberta", unsubscribeUrl?: string) {
+  const text = [title, "", ...paragraphs, ...(button ? ["", `${button.label}: ${button.url}`] : []), "", footer, ...(unsubscribeUrl ? [`Email preferences / unsubscribe: ${unsubscribeUrl}`] : [])].join("\n");
   const html = `<!doctype html><html><body style="margin:0;background:#F6F4F1;font-family:Arial,Helvetica,sans-serif;color:#1D2327">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFDFB;border-radius:20px;border:1px solid #ECE8E2;padding:32px">
@@ -102,7 +102,7 @@ export function simpleEmail(title: string, paragraphs: string[], button?: { labe
 <tr><td style="font-size:22px;padding:6px 0 14px">${esc(title)}</td></tr>
 ${paragraphs.map((p) => `<tr><td style="font-size:15px;line-height:1.6;color:#454C52;padding-bottom:10px">${esc(p)}</td></tr>`).join("\n")}
 ${button ? `<tr><td style="padding:14px 0"><a href="${esc(button.url)}" style="display:inline-block;background:#3F6F7C;color:#FFFDFB;text-decoration:none;border-radius:12px;padding:12px 18px;font-size:15px">${esc(button.label)}</a></td></tr>` : ""}
-<tr><td style="font-size:12px;color:#737A80;padding-top:20px;border-top:1px solid #EFECE8">${esc(footer)}</td></tr>
+<tr><td style="font-size:12px;color:#737A80;padding-top:20px;border-top:1px solid #EFECE8">${esc(footer)}${unsubscribeUrl ? ` · <a href="${esc(unsubscribeUrl)}" style="color:#737A80">Email preferences / unsubscribe</a>` : ""}</td></tr>
 </table></td></tr></table></body></html>`;
   return { subject: title, text, html };
 }

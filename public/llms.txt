@@ -17,9 +17,11 @@
 ## Specialties
 - [All specialties](https://neyuhealth.com/specialties): Cardiology, Heart Failure Clinic, Internal Medicine, Endocrinology, Geriatric Medicine, Pediatric Rheumatology; partner clinics for Respiratory Medicine, Nutrition and Precision Skin Health
 - [Find a physician](https://neyuhealth.com/physicians)
+- Specialty pages: [Cardiology](https://neyuhealth.com/specialties/cardiology) · [Heart Failure Clinic](https://neyuhealth.com/specialties/heart-failure-clinic) · [Internal Medicine](https://neyuhealth.com/specialties/internal-medicine) · [Endocrinology](https://neyuhealth.com/specialties/endocrinology) · [Geriatric Medicine](https://neyuhealth.com/specialties/geriatric-medicine) · [Pediatric Rheumatology](https://neyuhealth.com/specialties/pediatric-rheumatology) · [Respiratory Medicine](https://neyuhealth.com/specialties/respiratory-medicine) · [Nutrition](https://neyuhealth.com/specialties/nutrition) · [Precision Medicine](https://neyuhealth.com/specialties/precision-medicine) · [Skin Health](https://neyuhealth.com/specialties/skin-health)
 
 ## Diagnostics
 - [Diagnostics overview](https://neyuhealth.com/diagnostics): cardiac imaging (echocardiography), exercise stress testing incl. stress echo, heart rhythm monitoring (Holter), pulmonary function, vascular studies
+- Test pages (what each test is, how long it takes, how to prepare): [Cardiac imaging](https://neyuhealth.com/diagnostics/cardiac-imaging) · [Stress testing](https://neyuhealth.com/diagnostics/stress-testing) · [Monitoring](https://neyuhealth.com/diagnostics/monitoring) · [Vascular](https://neyuhealth.com/diagnostics/vascular) · [Pulmonary function](https://neyuhealth.com/diagnostics/pulmonary) · [Clinic services](https://neyuhealth.com/services)
 - [Lab results explained](https://neyuhealth.com/lab-results) · [Genomics (BioAro Labs tests)](https://neyuhealth.com/genomics)
 
 ## Prevention & longevity
@@ -28,6 +30,9 @@
 
 ## My Health Space
 - [My Health Space](https://neyuhealth.com/my-health/sign-up): a private, provider-neutral personal health record. Patients add reports from any doctor, lab or hospital (upload, scan or photo), connect Apple Health, Oura, WHOOP and Withings, log food, get an AI health plan and create a Doctor Assessment PDF to bring to any doctor. AI content is always labelled; original reports are kept unchanged.
+
+## Free AI tools (Neyu)
+- [Meet Neyu](https://neyuhealth.com/neyu) · [Lab Result Explainer](https://neyuhealth.com/lab-results) · [Explain My Diagnosis](https://neyuhealth.com/explain-diagnosis). Neyu explains; it never diagnoses.
 
 ## For referring physicians
 - [Referral Centre](https://neyuhealth.com/referral-centre)

@@ -1,5 +1,5 @@
 // Clinic-side writes for My Health Space (patients can't write clinical data).
-// Protected by the existing /admin login (admin_token cookie).
+// Protected by the /admin staff sign-in (requireAdmin).
 //
 // POST /api/admin/portal  { type, patientEmail, data }
 //   type = "labResult" | "protocolItem" | "appointment" | "careTeam" | "reading" | "referral"
@@ -8,9 +8,8 @@
 // Every write is recorded in the patient's AccessLog as actor "admin".
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@backend/db";
-import { verifyAdminToken } from "@backend/adminAuth";
+import { requireAdmin } from "@backend/adminAuth";
 import { audit } from "@backend/audit";
 import { clientMeta, normalizeEmail, assertSameOrigin } from "@backend/patientAuth";
 import { isMetricKey, METRIC_DEFS, dayKey } from "@/lib/portal/metrics";
@@ -20,9 +19,6 @@ import { readJson, toResponse, str, HttpError } from "@backend/apiHelpers";
 const CATEGORIES = ["Heart Health", "Metabolic Health", "Inflammation", "Nutrition", "Hormones", "Genomics", "Other"];
 const SLOTS = ["Morning", "Midday", "Evening"];
 
-async function requireAdmin() {
-  if (!verifyAdminToken((await cookies()).get("admin_token")?.value)) throw new HttpError(401, "Admin sign-in required.");
-}
 const numOrNull = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : NaN);
 const dateOrNull = (v: unknown, field: string) => {
   if (!v) return null;

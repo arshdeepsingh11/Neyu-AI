@@ -39,7 +39,7 @@ function fallback(q: string) {
 
 export async function POST(req: Request) {
   const { ip } = await clientMeta();
-  if (!rateLimit(`nea-ask:${ip}`, 15, 60_000)) return NextResponse.json({ error: "Too many questions — try again in a minute." }, { status: 429 });
+  if (!(await rateLimit(`nea-ask:${ip}`, 15, 60_000))) return NextResponse.json({ error: "Too many questions — try again in a minute." }, { status: 429 });
   let question = "";
   let history: { role: "user" | "alba"; text: string }[] = [];
   try {

@@ -61,9 +61,11 @@ export default function Footer() {
         </div>
         <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: "8px 20px", fontSize: 13, color: "#5A626A" }}>
           <span>© {new Date().getFullYear()} NEYU Health</span>
-          <a href="#" style={{ color: "#5A626A" }}>Privacy</a>
-          <a href="#" style={{ color: "#5A626A" }}>Terms</a>
-          <a href="#" style={{ color: "#5A626A" }}>Accessibility</a>
+          <a href="/privacy" style={{ color: "#5A626A" }}>Privacy</a>
+          <a href="/terms" style={{ color: "#5A626A" }}>Terms</a>
+          <a href="/ai-notice" style={{ color: "#5A626A" }}>Neyu AI notice</a>
+          <a href="/cookies" style={{ color: "#5A626A" }}>Cookies</a>
+          <a href="/accessibility" style={{ color: "#5A626A" }}>Accessibility</a>
           <span>Testing fulfilled by BioAro Labs and BioAro Drugs.</span>
         </div>
       </div>

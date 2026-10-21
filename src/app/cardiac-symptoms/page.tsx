@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
+import { seo } from "@/lib/seo";
+import PageSchema from "@/components/PageSchema";
 import { NeyuPage } from "@/components/neyu/kit";
 import SymptomsPage from "@/components/neyu/pages/Symptoms";
 
-export const metadata: Metadata = { title: "Cardiac symptoms · NEYU Health", description: "What chest pain, shortness of breath, palpitations, dizziness, fatigue and swelling can mean, when to call 911, and an AI symptom check with Neyu." };
+export const metadata: Metadata = seo("/cardiac-symptoms");
 
-export default function Page() {
+function Page() {
   return <NeyuPage><SymptomsPage /></NeyuPage>;
+}
+
+export default function SeoPage() {
+  return <><PageSchema path="/cardiac-symptoms" /><Page /></>;
 }

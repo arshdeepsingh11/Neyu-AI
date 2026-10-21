@@ -8,7 +8,7 @@ import { withPatient, withPatientMutation, readJson, str, HttpError } from "@bac
 export const GET = () => withPatient(async ({ patient }) => listChallenges(patient));
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient }) => {
-  if (!rateLimit(`chal:${patient.id}`, 20, 60_000)) throw new HttpError(429, "Slow down a little.");
+  if (!(await rateLimit(`chal:${patient.id}`, 20, 60_000))) throw new HttpError(429, "Slow down a little.");
   const b = await readJson(req);
   const action = str(b.action, 10);
   let code: string | undefined;

@@ -8,23 +8,48 @@ import type { Go } from "@/lib/admin/types";
 
 export class ApiError extends Error { constructor(public status: number, message: string) { super(message); } }
 
-export async function getView<T>(view: string, params: Record<string, string | undefined> = {}): Promise<T> {
+// Break-glass: when the server answers "reason_required", the console asks the staff
+// member for a reason (ReasonDialog), records it, and retries the same request once.
+type ReasonAsk = (label: string) => Promise<string | null>;
+let askReason: ReasonAsk | null = null;
+const pendingAsks = new Map<string, Promise<boolean>>();
+export function setReasonAsker(fn: ReasonAsk | null) { askReason = fn; }
+async function breakGlass(j: { target?: string; label?: string }): Promise<boolean> {
+  if (!askReason || !j.target) return false;
+  const key = j.target;
+  if (!pendingAsks.has(key)) {
+    pendingAsks.set(key, (async () => {
+      const reason = await askReason!(j.label || "this record");
+      if (!reason) return false;
+      const r = await fetch("/api/admin/action", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ action: "access.grant", target: j.target, reason }) });
+      return r.ok;
+    })().finally(() => setTimeout(() => pendingAsks.delete(key), 0)));
+  }
+  return pendingAsks.get(key)!;
+}
+
+export async function getView<T>(view: string, params: Record<string, string | undefined> = {}, retried = false): Promise<T> {
   const q = new URLSearchParams({ view });
   Object.entries(params).forEach(([k, v]) => v != null && v !== "" && q.set(k, v));
   const r = await fetch("/api/admin/data?" + q.toString(), { cache: "no-store", credentials: "same-origin" });
   const j = await r.json().catch(() => ({}));
   if (r.status === 401) window.dispatchEvent(new Event("anra-admin-signed-out"));
+  if (r.status === 403 && j.code === "reason_required" && !retried && (await breakGlass(j))) return getView<T>(view, params, true);
   if (!r.ok) throw new ApiError(r.status, j.error || "Something went wrong.");
   return j as T;
 }
 
-export async function postAction<T = any>(body: Record<string, unknown>): Promise<T> {
+export async function postAction<T = any>(body: Record<string, unknown>, retried = false): Promise<T> {
   const r = await fetch("/api/admin/action", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({}));
   if (r.status === 401 && body.action !== "session.unlock") window.dispatchEvent(new Event("anra-admin-signed-out"));
+  if (r.status === 403 && j.code === "reason_required" && !retried && (await breakGlass(j))) return postAction<T>(body, true);
   if (!r.ok) throw new ApiError(r.status, j.error || "Something went wrong.");
   return j as T;
 }
+
+/** Does this staff member have the permission? (null perms = old shared password = everything) */
+export const hasPerm = (perms: Record<string, string> | null | undefined, ...keys: string[]) => perms === null || perms === undefined || keys.some((k) => !!perms[k]);
 
 export function downloadFile(f: { name: string; mime: string; content: string }) {
   const url = URL.createObjectURL(new Blob([f.content], { type: f.mime }));
@@ -39,6 +64,8 @@ export interface ActOpts { success: string; sub?: string | ((r: any) => string);
 
 export interface AdminCtx {
   actor: string;
+  perms: Record<string, string> | null | undefined;
+  system?: { store: string; storage: string; queue: string };
   canEdit: boolean;
   mobile: boolean;
   version: number;

@@ -1,12 +1,15 @@
 import LongevityLab from "@/components/lab/LongevityLab";
 import type { Metadata } from "next";
+import { seo } from "@/lib/seo";
+import PageSchema from "@/components/PageSchema";
 
-export const metadata: Metadata = {
-  title: "Longevity Lab · NEYU Health",
-  description: "Interactive, research-backed explainers on biological aging — intervention responsiveness, GDF-15 and telomeres, pace of aging, pharmacogenomics and longevity genetics — with Neyu, 3D models and BioAro Labs testing.",
-};
+export const metadata: Metadata = seo("/longevity-lab");
 
 // Content: src/data/longevityScience.ts · components: src/components/lab/*
-export default function LongevityLabPage() {
+function LongevityLabPage() {
   return <LongevityLab />;
+}
+
+export default function SeoPage() {
+  return <><PageSchema path="/longevity-lab" /><LongevityLabPage /></>;
 }

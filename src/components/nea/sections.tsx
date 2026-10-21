@@ -51,9 +51,9 @@ export function Overview({ go, openTool, askSeed, pickCat }: { go: (t: Tab) => v
               <span style={{ padding: "6px 12px", borderRadius: 999, fontSize: 11.5, letterSpacing: ".14em", textTransform: "uppercase", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.18)" }}>NEYU partner clinic</span>
               <OpenPill dark />
             </div>
-            <h1 style={{ margin: "20px 0 0", fontSize: "clamp(38px,5.6vw,72px)", lineHeight: 1.02, letterSpacing: "-.045em", fontWeight: 500 }}>
+            <h2 style={{ margin: "20px 0 0", fontSize: "clamp(38px,5.6vw,72px)", lineHeight: 1.02, letterSpacing: "-.045em", fontWeight: 500 }}>
               Precision care for<br /><anra-morph words="your skin.|your glow.|your confidence.|your microbiome.|you." gradient="linear-gradient(90deg,#F3C3B2,#E8A08C 45%,#A9D8F0)" />
-            </h1>
+            </h2>
             <p style={{ margin: "18px 0 0", fontSize: "clamp(16px,1.5vw,19px)", lineHeight: 1.55, color: "rgba(247,245,241,.78)", maxWidth: 520 }}>Medical aesthetics, Fotona laser and whole-body wellness, physician-managed — with Neyu to help you find the right treatment.</p>
             <form onSubmit={(e) => { e.preventDefault(); if (q.trim().length > 1) askSeed(q.trim()); }} style={{ position: "relative", marginTop: 26, maxWidth: 560, borderRadius: 999 }}>
               <anra-electro radius="30" style={{ position: "absolute", inset: -6, pointerEvents: "none" }} />

@@ -287,7 +287,7 @@ export async function getTrends(patient: { id: string; timezone: string }): Prom
 // ── Results ─────────────────────────────────────────────────────────────
 export async function getResults(patient: { id: string; timezone: string }): Promise<ResultsDTO> {
   if (!(await getConsent(patient.id)).labs) return { latestLabel: null, results: [] };
-  const rows = await prisma.labResult.findMany({ where: { patientId: patient.id }, orderBy: [{ collectedAt: "desc" }, { createdAt: "desc" }] });
+  const rows = await prisma.labResult.findMany({ where: { patientId: patient.id }, orderBy: [{ collectedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }] });
   const byCode = new Map<string, typeof rows>();
   rows.forEach((r) => { if (!byCode.has(r.code)) byCode.set(r.code, []); byCode.get(r.code)!.push(r); });
   const results: ResultDTO[] = [];
@@ -343,7 +343,7 @@ export async function getHistory(patientId: string): Promise<HistoryItemDTO[]> {
     prisma.longevityAssessment.findMany({ where: { patientId }, orderBy: { createdAt: "desc" }, take, select: { id: true, createdAt: true, suggestedNextStep: true } }),
     prisma.labResultCheck.findMany({ where: { patientId }, orderBy: { createdAt: "desc" }, take, select: { id: true, createdAt: true, overallSummary: true } }),
     prisma.referralSubmission.findMany({ where: { patientId }, orderBy: { createdAt: "desc" }, take, select: { id: true, createdAt: true, specialties: true, status: true, referringPhysician: true } }),
-    prisma.labResult.findMany({ where: { patientId, status: "final", collectedAt: { not: null } }, orderBy: { collectedAt: "desc" }, take: 300, select: { id: true, collectedAt: true, panel: true, source: true, name: true } }),
+    prisma.labResult.findMany({ where: { patientId, status: "final", collectedAt: { not: null } }, orderBy: { collectedAt: { sort: "desc", nulls: "last" } }, take: 300, select: { id: true, collectedAt: true, panel: true, source: true, name: true } }),
     prisma.protocolItem.findMany({ where: { patientId }, orderBy: { startedAt: "desc" }, take, select: { id: true, title: true, source: true, startedAt: true } }),
     prisma.appointment.findMany({ where: { patientId, startsAt: { lte: new Date() } }, orderBy: { startsAt: "desc" }, take, select: { id: true, title: true, clinician: true, startsAt: true, status: true } }),
   ]);
@@ -410,7 +410,7 @@ export async function getAppointments(patient: { id: string; timezone: string })
     prisma.appointment.findMany({ where: { patientId: patient.id }, orderBy: { startsAt: "asc" }, include: { _count: { select: { questions: true } } } }),
     prisma.visitQuestion.findMany({ where: { patientId: patient.id, OR: [{ appointmentId: null }, { appointment: { startsAt: { gte: now } } }] }, orderBy: { createdAt: "asc" }, select: { id: true, text: true } }),
     prisma.healthReading.count({ where: { patientId: patient.id, day: { gte: addDays(today, -30) }, ...readingSourceFilter(c) } }),
-    !c.labs ? Promise.resolve(null) : prisma.labResult.findFirst({ where: { patientId: patient.id, status: "final" }, orderBy: { collectedAt: "desc" }, select: { collectedAt: true, source: true } }),
+    !c.labs ? Promise.resolve(null) : prisma.labResult.findFirst({ where: { patientId: patient.id, status: "final" }, orderBy: { collectedAt: { sort: "desc", nulls: "last" } }, select: { collectedAt: true, source: true } }),
     prisma.symptomCheckLog.findFirst({ where: { patientId: patient.id, createdAt: { gte: new Date(now.getTime() - 60 * 86400000) } }, orderBy: { createdAt: "desc" }, select: { createdAt: true, description: true } }),
   ]);
   const map = (a: (typeof appts)[number]): AppointmentDTO => ({
@@ -466,7 +466,7 @@ export async function getDevices(patientId: string): Promise<DeviceDTO[]> {
   const { oauthConfigured } = await import("@backend/oauth");
   return DEVICE_CATALOG.map((d) => {
     const r = rows.find((x) => x.provider === d.id);
-    const available = d.mode === "shortcut" || (d.mode === "oauth" && oauthConfigured(d.id));
+    const available = d.mode === "shortcut" || d.mode === "app" || (d.mode === "oauth" && oauthConfigured(d.id));
     const status: DeviceDTO["status"] = !r || r.status === "disconnected" ? "off" : r.status === "waitlist" ? "waitlist" : r.status === "connected" ? "on" : "pending";
     const stale = status === "on" && !!r?.lastSyncAt && Date.now() - r.lastSyncAt.getTime() > 3 * 86400000;
     return { id: d.id, name: d.name, icon: d.icon, signals: d.signals.map((s) => s.label), available, status, lastSyncAt: r?.lastSyncAt?.toISOString() ?? null,

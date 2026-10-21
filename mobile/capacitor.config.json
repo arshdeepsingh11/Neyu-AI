@@ -3,13 +3,46 @@
   "appName": "NEYU",
   "webDir": "www",
   "backgroundColor": "#F7F6F2",
-  "appendUserAgent": "NeyuApp",
+  "appendUserAgent": "NeyuApp/1",
   "server": {
     "url": "https://neyuhealth.com/app-start",
     "cleartext": false,
-    "allowNavigation": ["neyuhealth.com", "*.neyuhealth.com"],
+    "allowNavigation": [
+      "neyuhealth.com",
+      "*.neyuhealth.com"
+    ],
     "errorPath": "offline.html"
   },
-  "android": { "allowMixedContent": false },
-  "ios": { "contentInset": "never", "limitsNavigationsToAppBoundDomains": false }
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "appendUserAgent": "NeyuApp/1"
+  },
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false,
+    "appendUserAgent": "NeyuApp/1 NeyuPush/1"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 1200,
+      "backgroundColor": "#F7F6F2",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "LIGHT",
+      "backgroundColor": "#F7F6F2"
+    }
+  }
 }

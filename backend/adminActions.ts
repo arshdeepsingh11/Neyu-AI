@@ -15,7 +15,7 @@ import { refStatus, revealHealth, revealLabs, revealAI, patientsList, auditList,
 import { PROVIDER_NAMES } from "@/lib/portal/devices";
 
 const TZ = "America/Edmonton";
-type Ctx = { actor: string; ip: string };
+type Ctx = { actor: string; ip: string; role?: string; staffId?: string };
 type Result = { ok: true; message?: string; undo?: Record<string, unknown>; data?: unknown; file?: { name: string; mime: string; content: string } };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ const stamp = () => new Date().toISOString().slice(0, 10);
 
 // ── Actions ──────────────────────────────────────────────────────────────
 export async function runAction(b: any, c: Ctx): Promise<Result> {
-  const log = (e: Omit<Parameters<typeof adminLog>[0], "actor" | "ip">) => adminLog({ ...e, actor: c.actor, ip: c.ip });
+  const log = (e: Omit<Parameters<typeof adminLog>[0], "actor" | "ip">) => adminLog({ ...e, actor: c.actor, ip: c.ip, role: c.role, staffId: c.staffId });
 
   switch (b?.action) {
     // ── Privacy: reveal masked sections (reason required) ──
@@ -355,6 +355,26 @@ export async function runAction(b: any, c: Ctx): Promise<Result> {
       await log({ kind: "Account", action: "Resent verification email", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p) });
       return { ok: true, message: "Sent to " + p.email };
     }
+    // When the patient can't get the email code (e.g. email service not set up yet), staff can
+    // confirm the address after checking it with the patient (phone call / in person).
+    case "account.verify": {
+      const p = await patientOr404(b.patientId);
+      if (p.emailVerifiedAt) throw new HttpError(409, "This email is already verified.");
+      const how = str(b.how, 120);
+      if (how.length < 3) throw new HttpError(400, "Say how you confirmed the email (e.g. phone call).");
+      await prisma.patient.update({ where: { id: p.id }, data: { emailVerifiedAt: new Date() } });
+      await log({ kind: "Account", action: "Confirmed email by hand", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p), reason: how, before: "Email not verified", after: "Email verified" });
+      return { ok: true };
+    }
+    case "push.test": {
+      // A test notification to the patient's phones (general text only — it can show on a locked screen).
+      const p = await patientOr404(b.patientId);
+      const { patientPush } = await import("@backend/push");
+      const ok = await patientPush(p.id, "account", { title: "NEYU", body: "A test message from your NEYU care team. Notifications are working.", url: "/my-health" });
+      if (!ok) throw new HttpError(409, "This patient hasn't turned on notifications in the NEYU app.");
+      await log({ kind: "Account", action: "Sent test notification", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p) });
+      return { ok: true };
+    }
     case "account.deactivate": {
       const p = await patientOr404(b.patientId);
       const next = p.accountStatus === "deactivated" ? "active" : "deactivated";
@@ -366,12 +386,15 @@ export async function runAction(b: any, c: Ctx): Promise<Result> {
     case "account.delete": {
       const p = await patientOr404(b.patientId);
       if (str(b.confirm, 10) !== "DELETE") throw new HttpError(400, "Type DELETE to confirm.");
+      // Same 30-day hold as a patient's own request; cancel any time in Settings → Privacy requests.
+      const { requestDeletion } = await import("@backend/privacy");
+      const full = await prisma.patient.findUnique({ where: { id: p.id }, select: { id: true, email: true, firstName: true } });
+      const r = await requestDeletion(full!, "", str(b.reason, 300) || "Requested through the clinic", "staff", { ip: c.ip });
       await prisma.$transaction([
-        prisma.patient.update({ where: { id: p.id }, data: { accountStatus: "deletion_requested" } }),
         prisma.patientSession.deleteMany({ where: { patientId: p.id } }),
         prisma.deviceConnection.updateMany({ where: { patientId: p.id }, data: { status: "disconnected", tokenHash: null } }),
       ]);
-      await log({ kind: "Account", action: "Requested account deletion", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p), before: p.accountStatus, after: "Deletion requested" });
+      await log({ kind: "Account", action: "Requested account deletion (30-day hold)", resource: "Account", subjectType: "patient", subjectId: p.id, subject: fullName(p), before: p.accountStatus, after: "Deletes " + r.scheduledFor.toISOString().slice(0, 10) });
       return { ok: true };
     }
 

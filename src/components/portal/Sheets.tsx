@@ -12,6 +12,8 @@ import { toggleProtocol } from "./screens/Protocol";
 import { relTime } from "./screens/Devices";
 import { ConnectSheet, ImportSheet, ReadingSheet, BpSheet, LocationSheet, ShareSheet, InviteSheet, ChallengeSheet } from "./UniverseSheets";
 import { NIcon } from "@/components/neyu/icons";
+import { isNative, call, platform } from "@/lib/native/bridge";
+import { nativeHealthProvider, nativeConnected, connectNativeHealth, syncNativeHealth, disconnectNativeHealth, openHealthSettings, healthName } from "@/lib/native/health";
 
 const TITLES: Record<string, [string, string]> = { alba: ["Neyu · AI companion", "Ask Neyu"], protocol: ["My Protocol", "Protocol detail"], prepare: ["Appointment", "Prepare for visit"], manage: ["Connected device", "Manage device"], conversation: ["History", "AI conversation"],
   connect: ["Connect", "How to connect"], import: ["Add data", "Import a file"], reading: ["Add data", "Enter a reading"], bp: ["Heart", "Add a blood pressure reading"], location: ["NEYU Today", "Your city"],
@@ -99,7 +101,7 @@ function AlbaSheet({ ask }: { ask?: string }) {
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}><span style={{ width: 36, height: 36, borderRadius: 18, background: C.lav, color: C.lavMid, display: "flex", alignItems: "center", justifyContent: "center" }}><NIcon name="ph-sparkle" size={19} tone="currentColor" /></span><h2 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>Ask Neyu</h2></div>
-      <p style={{ margin: "0 0 18px", fontSize: 14, lineHeight: 1.5, color: C.muted }}>Neyu explains your data using the sources you've allowed. It doesn't diagnose or replace your care team.</p>
+      <p style={{ margin: "0 0 18px", fontSize: 14, lineHeight: 1.5, color: C.muted }}>Neyu explains your data using the sources you've allowed. It doesn't diagnose or replace your care team. <a href="/ai-notice" target="_blank" rel="noopener" style={{ color: C.teal }}>How Neyu works</a></p>
       {msgs.length === 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <span style={{ fontSize: 13, color: C.muted }}>Ask Neyu about you</span>
@@ -310,6 +312,10 @@ function ManageSheet({ id, token: initialToken }: { id: string; token?: string }
   const [token, setToken] = useState(initialToken);
   const [showSetup, setShowSetup] = useState(!!initialToken);
   const [syncing, setSyncing] = useState(false);
+  // NEYU app: this card reads Apple Health / Health Connect on this phone.
+  const native = nativeHealthProvider(id) === id ? (id as "iphone" | "android") : null;
+  const [here, setHere] = useState(false); // connected on THIS phone
+  useEffect(() => { if (native) nativeConnected(native).then(setHere); }, [native]);
   // New data arrived from the phone while this sheet is open → refresh the rest.
   const lastSync = data?.find((x) => x.id === id)?.lastSyncAt ?? null;
   const seenSync = useRef(lastSync);
@@ -318,7 +324,7 @@ function ManageSheet({ id, token: initialToken }: { id: string; token?: string }
   }, [lastSync, toast]);
   const d = data?.find((x) => x.id === id);
   if (!d) return <Loading />;
-  const on = d.status === "on", shortcut = d.mode === "shortcut";
+  const on = d.status === "on", shortcut = d.mode === "shortcut" && !native;
   const endpoint = typeof window !== "undefined" ? `${window.location.origin}/api/wearables/ingest` : "/api/wearables/ingest";
 
   const setTypes = async (label: string) => {
@@ -330,8 +336,27 @@ function ManageSheet({ id, token: initialToken }: { id: string; token?: string }
     try { const r = await api<{ token: string; devices: DeviceDTO[] }>(EP.devices, { body: { provider: id } }); prime(EP.devices, r.devices); setToken(r.token); setShowSetup(true); }
     catch (e: any) { toast(e.message); }
   };
+  const reconnect = async () => {
+    if (isNative()) {
+      try { const r = await api<{ url: string }>(`/api/portal/oauth/${id}/handoff`, { body: {} }); await call("Browser", "open", { url: r.url, presentationStyle: "popover" }); openSheet(null); }
+      catch (e: any) { toast(e.message); }
+      return;
+    }
+    window.location.href = `/api/portal/oauth/${id}/start`;
+  };
+  const connectHere = async () => {
+    setSyncing(true);
+    try { const r = await connectNativeHealth(native!); setHere(true); prime(EP.devices, await api<DeviceDTO[]>(EP.devices)); invalidate(EP.today, EP.trends, EP.brief, EP.heart); toast(r.stored ? `Connected · ${r.stored} readings` : "Connected"); }
+    catch (e: any) { toast(e.message); } finally { setSyncing(false); }
+  };
   const sync = async () => {
-    if (!shortcut) {
+    if (native && here) {
+      setSyncing(true);
+      try { const r = await syncNativeHealth({ days: 7, force: true }); prime(EP.devices, await api<DeviceDTO[]>(EP.devices)); await Promise.all([load(EP.today, true), load(EP.brief, true)].map((p) => p.catch(() => {}))); invalidate(EP.trends, EP.heart); toast(r.stored ? `Updated · ${r.stored} readings` : "Up to date"); }
+      catch (e: any) { toast(e.message); } finally { setSyncing(false); }
+      return;
+    }
+    if (d.mode === "oauth") {
       setSyncing(true);
       try { const r = await api<{ stored: number; devices: DeviceDTO[] }>("/api/portal/devices/sync", { body: { provider: id } }); prime(EP.devices, r.devices); await Promise.all([load(EP.today, true), load(EP.brief, true)].map((p) => p.catch(() => {}))); invalidate(EP.trends, EP.heart); toast(r.stored ? `Updated · ${r.stored} readings` : "Up to date"); }
       catch (e: any) { toast(e.message); } finally { setSyncing(false); }
@@ -339,9 +364,10 @@ function ManageSheet({ id, token: initialToken }: { id: string; token?: string }
     }
     openSheet(null);
     await Promise.all([reload(), load(EP.today, true), load(EP.trends, true)].map((p) => p?.catch(() => {})));
-    toast(on ? "Updated just now" : "Run your NEYU Sync shortcut on your iPhone to send data");
+    toast(d.mode === "app" ? "Open the NEYU app on your Android phone to send new data" : on ? "Updated just now" : "Run your NEYU Sync shortcut on your iPhone to send data");
   };
   const disconnect = async () => {
+    if (native) await disconnectNativeHealth();
     try { prime(EP.devices, await api<DeviceDTO[]>(`${EP.devices}?provider=${id}`, { method: "DELETE" })); invalidate(EP.today, EP.trends, EP.brief); openSheet(null); toast(`${d.name} disconnected`); }
     catch (e: any) { toast(e.message); }
   };
@@ -385,6 +411,17 @@ function ManageSheet({ id, token: initialToken }: { id: string; token?: string }
         </section>
       )}
 
+      {native && !here && (
+        <section style={{ marginBottom: 22, padding: 16, borderRadius: 16, background: C.card, border: `1px solid ${C.line}`, display: "flex", flexDirection: "column", gap: 10 }}>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: C.ink2 }}>Read {healthName()} straight from this phone. NEYU sends new days each time you open the app.</p>
+          <button onClick={connectHere} disabled={syncing} style={{ height: 46, border: "none", borderRadius: 12, background: C.teal, color: C.card, fontSize: 15, cursor: "pointer" }}>{syncing ? "Connecting…" : `Connect ${healthName()} on this phone`}</button>
+        </section>
+      )}
+      {native && here && (
+        <p style={{ margin: "-6px 0 18px", fontSize: 13.5, lineHeight: 1.5, color: C.muted }}>
+          Reading {healthName()} on this phone. {platform() === "android" ? <button onClick={openHealthSettings} style={{ padding: 0, border: "none", background: "none", color: C.teal, fontSize: 13.5, cursor: "pointer" }}>Change what NEYU may read</button> : "To change what NEYU may read: Settings → Health → Data Access & Devices → NEYU."}
+        </p>
+      )}
       <h3 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 500 }}>Data shared with My Health Space</h3>
       <div style={{ display: "flex", flexDirection: "column", marginBottom: 22 }}>
         {d.signals.map((s) => (
@@ -396,8 +433,8 @@ function ManageSheet({ id, token: initialToken }: { id: string; token?: string }
       </div>
       {shortcut && on && !showSetup && <div style={{ marginBottom: 12 }}><SyncLog d={d} /></div>}
       {shortcut && on && !showSetup && <button onClick={() => setShowSetup(true)} style={{ width: "100%", height: 46, border: "none", borderRadius: 12, background: "none", fontSize: 15, color: C.teal, cursor: "pointer", marginBottom: 6 }}>Sync setup</button>}
-      {d.lastError && !shortcut && <button onClick={() => { window.location.href = `/api/portal/oauth/${id}/start`; }} style={{ width: "100%", height: 46, border: "none", borderRadius: 12, background: C.teal, color: C.card, fontSize: 15, cursor: "pointer", marginBottom: 10 }}>Reconnect {d.name}</button>}
-      <button onClick={sync} disabled={syncing} style={{ width: "100%", height: 46, border: `1px solid ${C.line12}`, borderRadius: 12, background: "none", fontSize: 15, cursor: "pointer", marginBottom: 10 }}>{syncing ? "Syncing…" : "Sync now"}</button>
+      {d.lastError && d.mode === "oauth" && <button onClick={reconnect} style={{ width: "100%", height: 46, border: "none", borderRadius: 12, background: C.teal, color: C.card, fontSize: 15, cursor: "pointer", marginBottom: 10 }}>Reconnect {d.name}</button>}
+      {(!native || here) && <button onClick={sync} disabled={syncing} style={{ width: "100%", height: 46, border: `1px solid ${C.line12}`, borderRadius: 12, background: "none", fontSize: 15, cursor: "pointer", marginBottom: 10 }}>{syncing ? "Syncing…" : "Sync now"}</button>}
       <button onClick={disconnect} style={{ width: "100%", height: 46, border: "1px solid rgba(139,75,55,.25)", borderRadius: 12, background: "none", color: C.peachInk, fontSize: 15, cursor: "pointer" }}>Disconnect {d.name}</button>
       <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.5, color: C.muted }}>Disconnecting stops new data. Data already in My Health Space stays until you delete it in Privacy &amp; Data.</p>
     </>

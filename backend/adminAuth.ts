@@ -1,18 +1,28 @@
-// Admin console authentication (Phase 1: one shared clinic password).
+// Admin console authentication.
 //
-// The token is an HMAC-signed "admin:<issuedAt>:<actor>" string, so nobody
-// can forge one without ADMIN_SESSION_SECRET. The actor is the email or
-// identifier the staff member typed at sign-in — it names them in the audit
-// log until individual staff accounts arrive (Phase 2).
+// Phase 3: every staff member signs in with their own email + password + 2-step
+// code (backend/staffAuth.ts). The old shared ADMIN_PASSWORD still works ONLY
+// until the first super admin has finished their own sign-in — then it is
+// switched off automatically (see legacyLoginAllowed).
+//
+// Old shared-password token: HMAC-signed "admin:<issuedAt>:<actor>", so nobody
+// can forge one without ADMIN_SESSION_SECRET.
 
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { HttpError } from "@backend/patientAuth";
+import { getStaff, legacyLoginAllowed, type Staff } from "@backend/staffAuth";
 
 const SECRET = process.env.ADMIN_SESSION_SECRET || "";
 export const ADMIN_COOKIE = "admin_token";
-export const ADMIN_SESSION_HOURS = 12; // one clinic day; the console also locks after 15 min idle
+export const ADMIN_SESSION_HOURS = 12;
 const MAX_AGE_MS = ADMIN_SESSION_HOURS * 60 * 60 * 1000;
+
+export interface Admin {
+  actor: string; // email (staff) or typed identifier (old shared password) — names them in the audit log
+  staff: Staff | null; // null only for the old shared password
+  role: string; // display label for the audit log
+}
 
 export function checkAdminPassword(candidate: string): boolean {
   const real = process.env.ADMIN_PASSWORD || "";
@@ -35,7 +45,7 @@ export function createAdminToken(actor = "admin"): string {
   return Buffer.from(`${payload}.${sig}`).toString("base64url");
 }
 
-/** Returns the signed-in staff identifier, or null if the token is missing, forged or expired. */
+/** Returns the identifier inside an old shared-password token, or null if missing, forged or expired. */
 export function readAdminToken(token: string | undefined | null): { actor: string } | null {
   if (!token || !SECRET || token.length > 600) return null;
   try {
@@ -55,16 +65,17 @@ export function readAdminToken(token: string | undefined | null): { actor: strin
   }
 }
 
-export function verifyAdminToken(token: string | undefined | null): boolean {
-  return readAdminToken(token) !== null;
-}
-
-export async function getAdmin(): Promise<{ actor: string } | null> {
-  return readAdminToken((await cookies()).get(ADMIN_COOKIE)?.value);
+/** The signed-in admin: a staff account first, else a still-allowed shared-password session. */
+export async function getAdmin(): Promise<Admin | null> {
+  const staff = await getStaff();
+  if (staff) return { actor: staff.email, staff, role: staff.roles.map((r) => r.name).join(", ") };
+  const old = readAdminToken((await cookies()).get(ADMIN_COOKIE)?.value);
+  if (old && (await legacyLoginAllowed())) return { actor: old.actor, staff: null, role: "Admin (shared)" };
+  return null;
 }
 
 /** Route guard: throws 401 when no valid admin session. */
-export async function requireAdmin(): Promise<{ actor: string }> {
+export async function requireAdmin(): Promise<Admin> {
   const a = await getAdmin();
   if (!a) throw new HttpError(401, "Admin sign-in required.");
   return a;

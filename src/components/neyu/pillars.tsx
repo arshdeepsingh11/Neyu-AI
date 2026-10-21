@@ -54,7 +54,7 @@ function CareNavigator() {
         {busy && <div style={{ ...cardN, padding: 18, display: "flex", gap: 10, alignItems: "center", color: N.muted }}><AlbaOrb size={24} />Neyu is mapping your pathway…</div>}
         {route && (
           <div style={{ ...cardN, padding: 20, display: "grid", gap: 12, animation: "fadeUp .3s ease" }}>
-            <div style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>{route.concern}</div>
+            <div style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>{route.concern}</div>
             <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55 }}>{s.answer || route.summary}</p>
             {route.safety && <p style={{ margin: 0, fontSize: 14, color: "#8B2F1C" }}>{route.safety}</p>}
             <div style={{ display: "grid", gap: 8 }}>{route.steps.map((st, i) => <a key={st.label} href={st.href || "#"} style={{ display: "flex", gap: 12, alignItems: "center", padding: "12px 14px", borderRadius: 14, border: `1px solid ${N.line}`, textDecoration: "none", color: N.ink }}><span style={{ width: 28, height: 28, borderRadius: 9, background: N.grad, color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600 }}>{i + 1}</span><span style={{ flex: 1 }}><b style={{ fontWeight: 500 }}>{st.label}</b>{st.desc && <span style={{ display: "block", fontSize: 13.5, color: N.muted }}>{st.desc}</span>}</span><NIcon name="ph-arrow-right" size={18} tone={N.deep} /></a>)}</div>
@@ -142,7 +142,7 @@ export function DiagnosticsHub() {
       </Section>
       <Section tone="white" label="Lab tests" eyebrow="Advanced lab testing" title={<>Biomarkers that add <span style={gradText}>what a standard panel misses.</span></>}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,250px),1fr))", gap: 12 }}>
-          {featured.map((t) => <a key={t!.id} href="/genomics" className="sx-card" style={{ ...cardN, padding: 18, display: "grid", gap: 6, textDecoration: "none", color: N.ink }}><span style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>{t!.cat}</span><b style={{ fontWeight: 500, fontSize: 17 }}>{t!.name}</b><span style={{ fontSize: 14, color: N.ink2 }}>{t!.why}</span><span style={{ fontSize: 16, marginTop: 4 }}>{money(t!.price)}</span></a>)}
+          {featured.map((t) => <a key={t!.id} href="/genomics" className="sx-card" style={{ ...cardN, padding: 18, display: "grid", gap: 6, textDecoration: "none", color: N.ink }}><span style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>{t!.cat}</span><b style={{ fontWeight: 500, fontSize: 17 }}>{t!.name}</b><span style={{ fontSize: 14, color: N.ink2 }}>{t!.why}</span><span style={{ fontSize: 16, marginTop: 4 }}>{money(t!.price)}</span></a>)}
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><a href="/genomics" style={btn("ink")}>See all tests</a><a href="/at-home" style={btn("ghost")}><NIcon name="ph-house-line" size={18} tone={"currentColor"} />At-home collection</a></div>
       </Section>

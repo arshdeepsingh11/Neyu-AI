@@ -13,9 +13,9 @@ import { NIcon, SvgIcon } from "./icons";
 import { NChart } from "./charts";
 
 export const N = {
-  ink: "#0E1B2C", ink2: "#33465A", muted: "#5E6B78", faint: "#8A96A3",
+  ink: "#0E1B2C", ink2: "#33465A", muted: "#5E6B78", faint: "#66727E",
   paper: "#F7F6F2", card: "#FFFFFF", line: "#E2E6E8", line2: "#EEF1F2",
-  mint: "#86E0A0", green: "#3CC79E", teal: "#28B8BE", blue: "#2A84E4", deep: "#1D5FA8", warn: "#B4472A",
+  mint: "#86E0A0", green: "#3CC79E", teal: "#28B8BE", tealText: "#0F7A80", blue: "#2A84E4", deep: "#1D5FA8", warn: "#B4472A",
   grad: "linear-gradient(120deg,#3CC79E 0%,#28B8BE 45%,#2A84E4 100%)",
   soft: "linear-gradient(160deg,#FFFFFF 0%,#F2FAF7 50%,#EEF6FB 100%)",
 };
@@ -29,7 +29,7 @@ export const btn = (kind: "ink" | "grad" | "ghost" = "ink"): React.CSSProperties
   fontSize: 14, fontWeight: 500, letterSpacing: ".04em", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10, whiteSpace: "nowrap",
   boxShadow: kind === "grad" ? "0 18px 36px -18px rgba(42,132,228,.7)" : "none",
 });
-export const eyebrowN: React.CSSProperties = { fontSize: 12, letterSpacing: ".22em", textTransform: "uppercase", color: N.teal, fontWeight: 600 };
+export const eyebrowN: React.CSSProperties = { fontSize: 12, letterSpacing: ".22em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 };
 export const h2N: React.CSSProperties = { margin: "12px 0 0", fontSize: "clamp(32px,4.4vw,56px)", lineHeight: 1.04, letterSpacing: "-.035em", fontWeight: 500, color: N.ink };
 export const leadN: React.CSSProperties = { margin: "16px 0 0", fontSize: "clamp(16.5px,1.5vw,19px)", lineHeight: 1.6, color: N.ink2, maxWidth: 640 };
 
@@ -42,7 +42,7 @@ export function Section({ id, eyebrow, title, lead, children, center, tone = "pa
       <div style={{ ...wrapN, position: "relative", display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: "clamp(28px,4vw,48px)" }}>
         {(eyebrow || title || lead) && (
           <header style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: 0, justifyItems: center ? "center" : "start", textAlign: center ? "center" : "left" }}>
-            {eyebrow && <div style={{ ...eyebrowN, color: dark ? "#7EE0C0" : N.teal }}>{eyebrow}</div>}
+            {eyebrow && <div style={{ ...eyebrowN, color: dark ? "#7EE0C0" : N.tealText }}>{eyebrow}</div>}
             {title && <h2 style={{ ...h2N, color: dark ? "#FFFFFF" : N.ink, maxWidth: 900 }}>{title}</h2>}
             {lead && <p style={{ ...leadN, color: dark ? "rgba(234,242,246,.78)" : N.ink2, marginLeft: center ? "auto" : 0, marginRight: center ? "auto" : 0 }}>{lead}</p>}
           </header>
@@ -55,7 +55,7 @@ export function Section({ id, eyebrow, title, lead, children, center, tone = "pa
 
 /** Eyebrow + "Neyu · AI" badge on one baseline (they never sit at different heights). */
 export function Kicker({ label, badge = "Neyu · AI", dark }: { label: React.ReactNode; badge?: string; dark?: boolean }) {
-  return <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", minHeight: 28 }}><span style={{ ...eyebrowN, color: dark ? "#7EE0C0" : N.teal, lineHeight: 1 }}>{label}</span>{badge && <AiBadge label={badge} dark={dark} />}</div>;
+  return <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", minHeight: 28 }}><span style={{ ...eyebrowN, color: dark ? "#7EE0C0" : N.tealText, lineHeight: 1 }}>{label}</span>{badge && <AiBadge label={badge} dark={dark} />}</div>;
 }
 
 /** "Neyu · AI" badge — marks every AI touchpoint. */
@@ -211,10 +211,10 @@ export function StepRail({ steps, active, onPick, dark }: { steps: { t: string; 
       {rich && cur && (
         <div key={show} style={{ ...cardN, padding: "clamp(16px,2.4vw,24px)", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: 16, animation: "fadeUp .3s ease", background: dark ? "rgba(255,255,255,.05)" : "linear-gradient(160deg,#FFFFFF,#F2F9F7)" }}>
           <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
-            <span style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>Step {show + 1} · {cur.t}</span>
+            <span style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>Step {show + 1} · {cur.t}</span>
             {cur.more && <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>{cur.more.map((m) => <li key={m} style={{ display: "flex", gap: 8, fontSize: 15, lineHeight: 1.5, color: dark ? "#EAF2F6" : N.ink }}><NIcon name="check" size={16} tone="grad" style={{ marginTop: 3 }} />{m}</li>)}</ul>}
           </div>
-          {cur.neyu && <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "14px 16px", borderRadius: 16, background: dark ? "rgba(126,224,192,.08)" : "rgba(47,191,148,.07)", border: "1px solid rgba(47,191,148,.25)" }}><AlbaOrb size={26} /><div style={{ display: "grid", gap: 4 }}><span style={{ fontSize: 11.5, letterSpacing: ".16em", textTransform: "uppercase", color: N.teal, fontWeight: 600 }}>Neyu in this step</span><TypeLine text={cur.neyu} dark={dark} /></div></div>}
+          {cur.neyu && <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "14px 16px", borderRadius: 16, background: dark ? "rgba(126,224,192,.08)" : "rgba(47,191,148,.07)", border: "1px solid rgba(47,191,148,.25)" }}><AlbaOrb size={26} /><div style={{ display: "grid", gap: 4 }}><span style={{ fontSize: 11.5, letterSpacing: ".16em", textTransform: "uppercase", color: N.tealText, fontWeight: 600 }}>Neyu in this step</span><TypeLine text={cur.neyu} dark={dark} /></div></div>}
         </div>
       )}
     </div>
@@ -333,7 +333,7 @@ export function NeyuReads({ title = "Neyu reads", text, ask, dark }: { title?: s
     <div ref={ref} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: 16, borderRadius: 18, background: dark ? "rgba(255,255,255,.05)" : "linear-gradient(160deg,#FFFFFF,#F1F9F7)", border: `1px solid ${dark ? "rgba(255,255,255,.12)" : "rgba(60,199,158,.25)"}` }}>
       <AlbaOrb size={28} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11.5, letterSpacing: ".16em", textTransform: "uppercase", color: dark ? "#7EE0C0" : N.teal, fontWeight: 600 }}>{title}</div>
+        <div style={{ fontSize: 11.5, letterSpacing: ".16em", textTransform: "uppercase", color: dark ? "#7EE0C0" : N.tealText, fontWeight: 600 }}>{title}</div>
         <p style={{ margin: "5px 0 0", fontSize: 15.5, lineHeight: 1.55, color: dark ? "#EAF2F6" : N.ink, minHeight: "3em" }}>{text.slice(0, n)}{n < text.length && <span style={{ opacity: 0.5 }}>▍</span>}</p>
         {ask && <button onClick={() => openAlba(ask)} style={{ marginTop: 6, border: 0, background: "none", padding: 0, color: dark ? "#7EE0C0" : N.deep, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Ask Neyu a follow-up →</button>}
       </div>

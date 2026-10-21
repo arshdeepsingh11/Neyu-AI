@@ -47,7 +47,7 @@ async function buildContext(patient: { id: string; firstName: string; timezone: 
   const today = dayKey(new Date(), patient.timezone), from = addDays(today, -60);
   const [readings, labs, appt, protocol] = await Promise.all([
     prisma.healthReading.findMany({ where: { patientId: patient.id, day: { gte: from }, ...readingSourceFilter(c) }, select: { metric: true, day: true, value: true, valueText: true, source: true }, orderBy: { day: "asc" } }),
-    !c.labs ? Promise.resolve([]) : prisma.labResult.findMany({ where: { patientId: patient.id, status: "final" }, orderBy: { collectedAt: "desc" }, take: 12, select: { name: true, value: true, valueText: true, unit: true, refText: true, collectedAt: true, code: true } }),
+    !c.labs ? Promise.resolve([]) : prisma.labResult.findMany({ where: { patientId: patient.id, status: "final" }, orderBy: { collectedAt: { sort: "desc", nulls: "last" } }, take: 12, select: { name: true, value: true, valueText: true, unit: true, refText: true, collectedAt: true, code: true } }),
     !c.records ? Promise.resolve(null) : prisma.appointment.findFirst({ where: { patientId: patient.id, status: "scheduled", startsAt: { gte: new Date() } }, orderBy: { startsAt: "asc" }, select: { title: true, clinician: true, startsAt: true } }),
     getProtocol(patient),
   ]);
@@ -118,7 +118,7 @@ async function buildContext(patient: { id: string; firstName: string; timezone: 
   if (protocol.items.length && on("goals", "doctor")) lines.push(`Daily protocol: ${protocol.items.map((i) => `${i.title} (${i.dose})${i.doneToday ? " — done today" : ""}`).join("; ")}`);
   // Personal Health Space: reports from any provider, food, plan, gaps, and how the patient uses the app.
   if (c.records && on("labs", "doctor", "reports")) {
-    const docs = await prisma.healthDocument.findMany({ where: { patientId: patient.id, status: "saved" }, orderBy: [{ docDate: "desc" }, { createdAt: "desc" }], take: 12, select: { title: true, kind: true, provider: true, docDate: true, createdAt: true, extracted: true, summary: true } });
+    const docs = await prisma.healthDocument.findMany({ where: { patientId: patient.id, status: "saved" }, orderBy: [{ docDate: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }], take: 12, select: { title: true, kind: true, provider: true, docDate: true, createdAt: true, extracted: true, summary: true } });
     if (docs.length) {
       lines.push("Reports in the patient's record (original documents; facts below were read from them):");
       evidence.push(...docs.slice(0, 4).map((d) => `${d.title} from ${(d.docDate || d.createdAt).toISOString().slice(0, 10)}${d.provider ? ` (${d.provider})` : ""}`));
@@ -163,7 +163,7 @@ async function gemini(system: string, message: string, history: { role: string; 
 }
 
 export const POST = (req: Request) => withPatientMutation(async ({ patient, ip }) => {
-  if (!rateLimit(`alba:${patient.id}`, 20, 60_000)) throw new HttpError(429, "You're sending messages quickly. Please wait a moment.");
+  if (!(await rateLimit(`alba:${patient.id}`, 20, 60_000))) throw new HttpError(429, "You're sending messages quickly. Please wait a moment.");
   const b = await readJson(req);
   const message = str(b.message, 1000);
   if (!message) throw new HttpError(400, "Please type a question.");

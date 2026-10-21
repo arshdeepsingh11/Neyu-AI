@@ -8,18 +8,27 @@ import { getCurrentPatient, clientMeta } from "@backend/patientAuth";
 import { exchangeCode, saveTokens, syncConnection, isOAuthProvider, baseUrl } from "@backend/oauth";
 import { DEVICE_CATALOG } from "@/lib/portal/devices";
 import { audit } from "@backend/audit";
+import { readStateCookie, backToAppPage } from "@backend/oauthHandoff";
 
 export async function GET(req: Request, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
   const base = baseUrl(req), url = new URL(req.url);
-  const back = (q: string) => { const r = NextResponse.redirect(`${base}/my-health?s=devices&${q}`); r.cookies.set("anra_oauth", "", { path: "/api/portal/oauth", maxAge: 0 }); return r; };
   const jar = await cookies();
-  const [cp, cstate, cpid] = (jar.get("anra_oauth")?.value || "").split(".");
-  const patient = await getCurrentPatient();
-  if (!patient || !isOAuthProvider(provider)) return back("oauth=failed");
+  const c = readStateCookie(jar.get("anra_oauth")?.value);
+  // Started in the NEYU app → finish in the phone's browser and hand back to the app.
+  const back = (q: string) => {
+    const r = c?.mode === "app" ? backToAppPage(q) : NextResponse.redirect(`${base}/my-health?s=devices&${q}`);
+    if (r instanceof NextResponse) r.cookies.set("anra_oauth", "", { path: "/api/portal/oauth", maxAge: 0 });
+    else r.headers.append("Set-Cookie", "anra_oauth=; Path=/api/portal/oauth; Max-Age=0; HttpOnly; SameSite=Lax");
+    return r;
+  };
+  // Web: the patient must still be signed in as the same person. App: the signed cookie says who.
+  const patientId = c?.mode === "app" ? c.patientId : (await getCurrentPatient())?.id;
+  if (!patientId || !isOAuthProvider(provider)) return back("oauth=failed");
   if (url.searchParams.get("error")) return back(`oauth=cancelled&p=${provider}`);
   const code = url.searchParams.get("code"), state = url.searchParams.get("state");
-  if (!code || !state || cp !== provider || cstate !== state || cpid !== patient.id) return back(`oauth=failed&p=${provider}`);
+  if (!code || !state || !c || c.provider !== provider || c.state !== state || c.patientId !== patientId) return back(`oauth=failed&p=${provider}`);
+  const patient = { id: patientId };
   try {
     const t = await exchangeCode(provider, code, req);
     const dev = DEVICE_CATALOG.find((d) => d.id === provider)!;

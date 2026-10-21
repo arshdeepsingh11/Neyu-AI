@@ -3,6 +3,7 @@
 // Sign in / create account for My Health Space, in the portal's visual
 // language. Errors come from the API as friendly sentences.
 
+import { LEGAL } from "@/lib/legal";
 import React, { useState } from "react";
 import { api, announceSession } from "./api";
 import { C } from "./ui";
@@ -86,7 +87,7 @@ export default function AuthForm({ mode, signupOpen = true }: { mode: "sign-in" 
               {up && (
                 <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 14, lineHeight: 1.5, color: C.ink2, cursor: "pointer" }}>
                   <input type="checkbox" checked={f.consent} onChange={set("consent")} required style={{ width: 18, height: 18, marginTop: 2, accentColor: C.teal, flex: "none" }} />
-                  <span>I agree that NEYU Health may store the health information I add or connect, to show it to me and — only when I choose — to my care team. I can export or delete it at any time.</span>
+                  <span>I’m {LEGAL.minAge} or older and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Use</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>. NEYU Health may store the health information I add or connect, to show it to me and — only when I choose — to my care team. I can export or delete it at any time.</span>
                 </label>
               )}
               {err && <p role="alert" style={{ margin: 0, padding: "12px 14px", borderRadius: 12, background: C.peach, color: C.peachInk, fontSize: 14, lineHeight: 1.5 }}>{err}</p>}

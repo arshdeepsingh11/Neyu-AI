@@ -28,7 +28,7 @@ export default function PasswordStrength({ password, email = "" }: { password: s
             <span key={i} style={{ height: 5, borderRadius: 3, background: password && score >= i ? COLORS[score] : "#E7E3DD", transition: "background .25s" }} />
           ))}
         </div>
-        <span style={{ fontSize: 12, fontWeight: 600, minWidth: 56, textAlign: "right", color: password ? COLORS[score] : "#8A9197" }}>{password ? SCORE_LABELS[score] : "Strength"}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, minWidth: 56, textAlign: "right", color: password ? COLORS[score] : "#5B6369" }}>{password ? SCORE_LABELS[score] : "Strength"}</span>
       </div>
       {password && (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: "4px 12px" }}>

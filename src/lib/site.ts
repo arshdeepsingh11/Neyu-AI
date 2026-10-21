@@ -14,6 +14,7 @@ export const PUBLIC_ROUTES: { path: string; priority: number; freq: "weekly" | "
     "specialties/cardiology", "specialties/heart-failure-clinic", "specialties/internal-medicine", "specialties/endocrinology", "specialties/geriatric-medicine", "specialties/pediatric-rheumatology", "specialties/respiratory-medicine", "specialties/nutrition", "specialties/precision-medicine", "specialties/skin-health",
     "cardiac-symptoms", "genomics", "longevity-lab", "lab-results", "explain-diagnosis", "neyu", "services", "explore"].map((p) => ({ path: p, priority: 0.8, freq: "monthly" as const })),
   ...["about", "careers", "resources", "contact"].map((p) => ({ path: p, priority: 0.6, freq: "monthly" as const })),
+  ...["privacy", "terms", "ai-notice", "cookies", "accessibility"].map((p) => ({ path: p, priority: 0.3, freq: "monthly" as const })),
 ];
 
 export const CLINICS = [

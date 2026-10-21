@@ -167,7 +167,7 @@ export async function getSharedView(token: string, ip?: string): Promise<SharedV
       readings: bps.slice(0, 40).map((b) => ({ when: new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: tz }).format(b.takenAt), value: `${b.sys}/${b.dia}`, pulse: b.pulse ? String(b.pulse) : "—" })) };
   }
   if (scope.includes("labs")) {
-    const labs = await prisma.labResult.findMany({ where: { patientId: o.id, status: "final" }, orderBy: { collectedAt: "desc" }, take: 60, select: { code: true, name: true, value: true, valueText: true, unit: true, refLow: true, refHigh: true, refText: true, collectedAt: true } });
+    const labs = await prisma.labResult.findMany({ where: { patientId: o.id, status: "final" }, orderBy: { collectedAt: { sort: "desc", nulls: "last" } }, take: 60, select: { code: true, name: true, value: true, valueText: true, unit: true, refLow: true, refHigh: true, refText: true, collectedAt: true } });
     const seen = new Set<string>();
     labs.forEach((x) => { if (seen.has(x.code)) return; seen.add(x.code); view.labs.push({ name: x.name, value: `${x.valueText ?? x.value ?? "—"} ${x.unit || ""}`.trim(), ref: x.refText || (x.refLow != null && x.refHigh != null ? `${x.refLow}–${x.refHigh}` : x.refHigh != null ? `≤ ${x.refHigh}` : x.refLow != null ? `≥ ${x.refLow}` : "—"), date: x.collectedAt ? fmtDate(x.collectedAt, tz) : "—", flag: x.value != null && ((x.refLow != null && x.value < x.refLow) || (x.refHigh != null && x.value > x.refHigh)) }); });
   }

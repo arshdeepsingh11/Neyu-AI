@@ -7,9 +7,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BootDTO, Go } from "@/lib/admin/types";
 import "./admin.css";
-import { Ctx, getView, postAction, type AdminCtx, type ConfirmSpec, type FormType, type ActOpts } from "./context";
+import { Ctx, getView, postAction, setReasonAsker, type AdminCtx, type ConfirmSpec, type FormType, type ActOpts } from "./context";
 import { T } from "./ui";
-import { SignIn, LockScreen, CommandPalette, ConfirmDialog, RevealDialog, DeleteDialog, ExportDialog, Toasts, type ToastT } from "./overlays";
+import { SignIn, LockScreen, CommandPalette, ConfirmDialog, RevealDialog, DeleteDialog, ExportDialog, Toasts, ReasonDialog, PasswordDialog, type ToastT } from "./overlays";
 import { FormSheet, AiSheet, ReferralSheet, AuditSheet } from "./sheets";
 import Overview from "./screens/Overview";
 import Inbox from "./screens/Inbox";
@@ -20,14 +20,15 @@ import Referrals from "./screens/Referrals";
 import Requests from "./screens/Requests";
 import AiActivity from "./screens/AiActivity";
 import Analytics from "./screens/Analytics";
+import Insights from "./screens/Insights";
 import AuditLog from "./screens/AuditLog";
 import Settings from "./screens/Settings";
 import { NeyuMark } from "@/components/brand/NeyuLogo";
 
 const LOCK_MIN = 15;
 type Route = { s: string; id: string | null; tab: string };
-const SLUG: Record<string, string> = { overview: "overview", inbox: "inbox", patients: "patients", patient: "patients", visitors: "visitors", visitor: "visitors", referrals: "referrals", requests: "service-requests", ai: "ai-activity", analytics: "analytics", audit: "audit-log", settings: "settings" };
-const FROM_SLUG: Record<string, string> = { overview: "overview", inbox: "inbox", patients: "patients", visitors: "visitors", referrals: "referrals", "service-requests": "requests", "ai-activity": "ai", analytics: "analytics", "audit-log": "audit", settings: "settings" };
+const SLUG: Record<string, string> = { overview: "overview", inbox: "inbox", patients: "patients", patient: "patients", visitors: "visitors", visitor: "visitors", referrals: "referrals", requests: "service-requests", ai: "ai-activity", analytics: "analytics", insights: "insights", audit: "audit-log", settings: "settings" };
+const FROM_SLUG: Record<string, string> = { overview: "overview", inbox: "inbox", patients: "patients", visitors: "visitors", referrals: "referrals", "service-requests": "requests", "ai-activity": "ai", analytics: "analytics", insights: "insights", "audit-log": "audit", settings: "settings" };
 
 function parseHash(): Route {
   const [slug, id, tab] = (typeof window === "undefined" ? "" : window.location.hash.replace(/^#\/?/, "")).split("/").map(decodeURIComponent);
@@ -62,6 +63,10 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
   const [version, setVersion] = useState(0);
   const [boot, setBoot] = useState<BootDTO | null>(null);
   const [notifSeen, setNotifSeen] = useState("");
+  const [reasonAsk, setReasonAsk] = useState<{ label: string; resolve: (r: string | null) => void } | null>(null);
+  const [pwOpen, setPwOpen] = useState(false);
+  // Break-glass prompt: the data layer asks, this dialog answers.
+  useEffect(() => { setReasonAsker((label) => new Promise((resolve) => setReasonAsk({ label, resolve }))); return () => setReasonAsker(null); }, []);
   const lastAct = useRef(Date.now());
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -158,7 +163,7 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
   const rangeParams = useMemo(() => (range === "Custom" && custom.from && custom.to ? { range, from: custom.from, to: custom.to } : { range: range === "Custom" ? "30D" : range }), [range, custom]);
 
   const ctx: AdminCtx = {
-    actor, canEdit, mobile, version, refresh, go, openAI, openRef,
+    actor, perms: boot?.perms, system: boot?.system, canEdit, mobile, version, refresh, go, openAI, openRef,
     setTab: (tab) => navigate({ ...route, tab }),
     openAudit: (id) => { setMenu(null); setSheet({ kind: "audit", id }); },
     openForm: (type, pid, init = {}, editId) => { setMenu(null); setSheet({ kind: "form", type, pid, init, editId }); },
@@ -169,15 +174,28 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
     range, rangeParams, menu, setMenu,
   };
 
+  // Landing page: an admin without Overview starts on the first screen they have.
+  const firstScreen = boot?.nav?.[0];
+  const routeKey = route.s === "patient" ? "patients" : route.s === "visitor" ? "visitors" : route.s;
+  useEffect(() => {
+    if (!boot?.nav || !firstScreen || boot.nav.includes(routeKey)) return;
+    if (!window.location.hash || window.location.hash === "#/overview") go({ s: firstScreen });
+  }, [boot?.nav, firstScreen, routeKey, go]);
+
   if (!authed) return <div className="anra-admin"><SignIn onSignedIn={(a) => { setActor(a); setAuthed(true); setLocked(false); lastAct.current = Date.now(); refresh(); }} /></div>;
 
   const queueN = boot?.queueCount ?? 0;
   const R = route;
-  const nav: ([string, string, string, number?, boolean?] | ["G", string])[] = [
+  // Menu shows only the screens this role can open (boot.nav from the server).
+  const allowed = (k: string) => !boot?.nav || boot.nav.includes(k);
+  const nav: ([string, string, string, number?, boolean?] | ["G", string])[] = ([
     ["overview", "Overview", "ph-squares-four"], ["inbox", "Inbox", "ph-tray", queueN], ["G", "People"],
     ["patients", "Patients", "ph-user", 0, true], ["visitors", "Visitors", "ph-user-circle-dashed", 0, true],
-    ["referrals", "Referrals", "ph-arrow-square-in"], ["requests", "Service requests", "ph-calendar-plus"], ["ai", "AI Activity", "ph-sparkle"], ["analytics", "Analytics", "ph-chart-line"], ["audit", "Audit Log", "ph-shield-check"], ["settings", "Settings", "ph-gear-six"],
-  ];
+    ["referrals", "Referrals", "ph-arrow-square-in"], ["requests", "Service requests", "ph-calendar-plus"], ["ai", "AI Activity", "ph-sparkle"], ["insights", "Insights", "ph-lightbulb"], ["analytics", "Analytics", "ph-chart-line"], ["audit", "Audit Log", "ph-shield-check"], ["settings", "Settings", "ph-gear-six"],
+  ] as ([string, string, string, number?, boolean?] | ["G", string])[]).filter((n) => n[0] === "G" ? allowed("patients") || allowed("visitors") : allowed(n[0]));
+  const screenKey = R.s === "patient" ? "patients" : R.s === "visitor" ? "visitors" : R.s;
+  const blocked = !!boot?.nav && !boot.nav.includes(screenKey);
+
   const actorInit = actor.split("@")[0].replace(/[^a-z]/gi, " ").trim().split(/\s+/).map((x) => x[0] || "").join("").slice(0, 2).toUpperCase() || "AD";
   const notifs = boot ? [
     ...(boot.emergencyCount ? [{ title: `${boot.emergencyCount} emergency-flagged symptom check${boot.emergencyCount > 1 ? "s" : ""}`, sub: "Needs review now", icon: "ph ph-warning-circle", fg: T.peachInk, bg: T.peach, run: () => { setInboxTab("urgent"); go({ s: "inbox" }); } }] : []),
@@ -187,7 +205,7 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
   ] : [];
   const notifSig = notifs.map((n) => n.title).join("|");
   const notifN = notifSig && notifSig !== notifSeen ? notifs.filter((n) => n.fg === T.peachInk || n.title.startsWith("New referral")).length : 0;
-  const showRange = R.s === "overview" || R.s === "analytics";
+  const showRange = (R.s === "overview" || R.s === "analytics" || R.s === "insights") && !blocked;
   const isActive = (k: string) => R.s === k || (k === "patients" && R.s === "patient") || (k === "visitors" && R.s === "visitor");
 
   return (
@@ -218,7 +236,7 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
               <button onClick={() => setCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"} className="h-card" style={{ display: "flex", alignItems: "center", gap: 12, height: 36, padding: "0 10px", border: "none", borderRadius: 10, background: "transparent", color: T.faint, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}><i className="ph ph-sidebar-simple" style={{ fontSize: 18 }} />{!isCollapsed && <span>Collapse</span>}</button>
               <button onClick={() => setMenu(menu === "prof" ? null : "prof")} className="h-card" style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, border: "none", borderRadius: 12, background: "transparent", cursor: "pointer", textAlign: "left", whiteSpace: "nowrap", color: T.ink }}>
                 <span style={{ position: "relative", width: 34, height: 34, flex: "none", borderRadius: "50%", background: T.chip, color: T.tealDk, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600 }}>{actorInit}<span style={{ position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: "50%", background: T.tealLt, border: `2px solid ${T.side}` }} /></span>
-                {!isCollapsed && <><span style={{ minWidth: 0, flex: 1 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{actor}</span><span style={{ display: "block", fontSize: 12, color: T.faint }}>Shared admin · Online</span></span><i className="ph ph-gear-six" style={{ color: T.faint }} /></>}
+                {!isCollapsed && <><span style={{ minWidth: 0, flex: 1 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{actor}</span><span style={{ display: "block", fontSize: 12, color: T.faint }}>{boot?.role || "Staff"} · Online</span></span><i className="ph ph-gear-six" style={{ color: T.faint }} /></>}
               </button>
             </div>
           </nav>
@@ -262,7 +280,8 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
                 <button onClick={() => setMenu(menu === "prof" ? null : "prof")} aria-label="Staff profile" style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: T.chip, color: T.tealDk, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{actorInit}</button>
                 {menu === "prof" && (
                   <div style={{ position: "absolute", right: 0, top: 46, width: 280, background: T.card, border: `1px solid ${T.line}`, borderRadius: 18, boxShadow: T.shadow, padding: 8, zIndex: 40, animation: "anraPop 220ms ease-out" }}>
-                    <div style={{ padding: "10px 12px 12px" }}><div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{actor}</div><div style={{ fontSize: 13, color: T.faint }}>Shared admin account · Phase 1</div></div>
+                    <div style={{ padding: "10px 12px 12px" }}><div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{actor}</div><div style={{ fontSize: 13, color: T.faint }}>{boot?.role || "Staff"}</div></div>
+                    <button onClick={() => { setMenu(null); setPwOpen(true); }} className="h-page" style={{ display: "flex", gap: 10, alignItems: "center", width: "100%", height: 40, padding: "0 12px", border: "none", background: "transparent", borderRadius: 10, fontSize: 14, color: T.ink, cursor: "pointer" }}><i className="ph ph-key" />Change password</button>
                     <button onClick={lock} className="h-page" style={{ display: "flex", gap: 10, alignItems: "center", width: "100%", height: 40, padding: "0 12px", border: "none", background: "transparent", borderRadius: 10, fontSize: 14, color: T.ink, cursor: "pointer" }}><i className="ph ph-lock-simple" />Lock session</button>
                     <button onClick={signOut} className="h-page" style={{ display: "flex", gap: 10, alignItems: "center", width: "100%", height: 40, padding: "0 12px", border: "none", background: "transparent", borderRadius: 10, fontSize: 14, color: T.ink, cursor: "pointer" }}><i className="ph ph-sign-out" />Sign out</button>
                     <div style={{ padding: "8px 12px", fontSize: 12, color: T.faint }}>Locks automatically after {LOCK_MIN} min idle.</div>
@@ -273,7 +292,15 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
             {mobile && <div role="status" style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 16px", background: T.wash, color: T.tealDk, fontSize: 13.5 }}><i className="ph ph-device-mobile" />Read-only on phone. Use a desktop or clinic iPad to make changes.</div>}
 
             <main id="anra-main" style={{ flex: 1, width: "100%", maxWidth: 1280, margin: "0 auto", padding: mobile ? "24px 16px 80px" : "32px 32px 80px" }}>
-              {!locked && <>
+              {!locked && blocked && (
+                <div data-testid="no-access" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "80px 20px", textAlign: "center" }}>
+                  <span style={{ width: 52, height: 52, borderRadius: 16, background: T.stone, color: T.ink2, display: "grid", placeItems: "center", fontSize: 24 }}><i className="ph ph-lock-key" /></span>
+                  <h1 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>Not part of your role</h1>
+                  <p style={{ margin: 0, color: T.ink2, maxWidth: 420 }}>Your role ({boot?.role}) doesn't include this screen. Ask a super admin if you need it.</p>
+                  <button onClick={() => go({ s: boot?.nav?.[0] || "settings" })} className="h-primary" style={{ height: 40, padding: "0 16px", borderRadius: 12, border: "none", background: T.teal, color: T.card, cursor: "pointer" }}>Go to {boot?.nav?.[0] || "settings"}</button>
+                </div>
+              )}
+              {!locked && !blocked && <>
                 {R.s === "overview" && <Overview openInbox={(t) => { setInboxTab(t); go({ s: "inbox" }); }} />}
                 {R.s === "inbox" && <Inbox tab={inboxTab} setTab={setInboxTab} />}
                 {R.s === "patients" && <Patients />}
@@ -284,6 +311,7 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
                 {R.s === "requests" && <Requests />}
                 {R.s === "ai" && <AiActivity />}
                 {R.s === "analytics" && <Analytics />}
+                {R.s === "insights" && <Insights />}
                 {R.s === "audit" && <AuditLog />}
                 {R.s === "settings" && <Settings tab={settingsTab} setTab={setSettingsTab} />}
               </>}
@@ -298,6 +326,8 @@ export default function AdminConsole({ signedIn, actor: initialActor }: { signed
         {!locked && sheet?.kind === "ai" && <AiSheet id={sheet.id} onClose={() => setSheet(null)} />}
         {!locked && sheet?.kind === "ref" && <ReferralSheet id={sheet.id} onClose={() => setSheet(null)} />}
         {!locked && sheet?.kind === "audit" && <AuditSheet id={sheet.id} onClose={() => setSheet(null)} />}
+        {reasonAsk && <ReasonDialog label={reasonAsk.label} onDone={(r) => { reasonAsk.resolve(r); setReasonAsk(null); }} />}
+        {pwOpen && <PasswordDialog onClose={() => setPwOpen(false)} onSaved={() => toast("Password changed", "Other devices were signed out")} />}
         {!locked && reveal && <RevealDialog pname={reveal.pname} label={reveal.label} onCancel={() => setReveal(null)} onReveal={async (reason) => {
           const r = await postAction({ action: "reveal", patientId: reveal.pid, section: reveal.section, reason });
           reveal.onData({ data: r.data, reason });

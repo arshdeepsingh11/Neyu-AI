@@ -1,4 +1,10 @@
 node_modules/
-android/app/build/
-ios/App/Pods/
-*.apk
+# Firebase file for Android push (add your own; CI gets it from the GOOGLE_SERVICES_JSON secret)
+firebase/*.json
+android/app/google-services.json
+# Signing keys and Apple files — never commit
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
