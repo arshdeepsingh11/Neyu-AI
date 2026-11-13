@@ -6,6 +6,8 @@ import { SITE_URL } from "@/lib/site";
 import { STUDIO } from "@/data/specialtyStudio";
 import { diagnosticContent } from "@/data/diagnosticContent";
 import { physicians } from "@/data/physicians";
+import { landingByPath } from "@/data/seoLanding";
+import { haBySlug, REVIEWER, UPDATED } from "@/data/healthAnswers";
 
 type QA = { q: string; a: string };
 
@@ -48,6 +50,17 @@ export function pageFacts(path: string): { about?: object; faq: QA[]; extra: obj
       if (t.prep?.length) faq.push({ q: `How do I prepare for a ${t.name.replace(/\s*\(.*\)/, "")}?`, a: t.prep.join(". ") + "." });
     }
   }
+  const landing = landingByPath(path);
+  if (landing) {
+    about = { "@type": landing.about.type, name: landing.about.name };
+    faq.push(...landing.faq);
+    extra.push({ "@type": "Service", name: landing.h1, description: landing.answer, areaServed: { "@type": "City", name: "Calgary" }, provider: { "@id": `${SITE_URL}/#org` }, url: abs(path) });
+  }
+  const article = path.startsWith("/health-answers/") ? haBySlug(slug) : undefined;
+  if (article) {
+    about = { "@type": article.about.type, name: article.about.name };
+    faq.push(...article.faq);
+  }
   if (path === "/physicians") {
     extra.push({ "@type": "ItemList", name: "NEYU Health physicians", itemListElement: physicians.map((d, i) => ({ "@type": "ListItem", position: i + 1, item: physician(d) })) });
   }
@@ -74,6 +87,11 @@ export default function PageSchema({ path }: { path: string }) {
     isPartOf: { "@id": `${SITE_URL}/#website` }, publisher: { "@id": `${SITE_URL}/#org` }, breadcrumb: breadcrumbs(path),
     ...(about ? { about } : {}), ...(specialty && path.startsWith("/specialties/") ? { specialty } : {}),
     ...(p.kind === "tool" ? { audience: { "@type": "PeopleAudience", geographicArea: { "@type": "AdministrativeArea", name: "Alberta" } } } : {}),
+    ...(p.kind === "article" ? {
+      audience: { "@type": "MedicalAudience", audienceType: "Patient" }, datePublished: UPDATED, dateModified: REVIEWER.date || UPDATED,
+      author: { "@id": `${SITE_URL}/#org` },
+      ...(REVIEWER.name ? { lastReviewed: REVIEWER.date || UPDATED, reviewedBy: { "@type": "Physician", name: REVIEWER.name, ...(REVIEWER.title ? { jobTitle: REVIEWER.title } : {}) } } : {}),
+    } : {}),
   };
   const graph: object[] = [page, ...extra];
   if (faq.length) graph.push({ "@type": "FAQPage", "@id": `${url}#faq`, mainEntity: faq.map((x) => ({ "@type": "Question", name: x.q, acceptedAnswer: { "@type": "Answer", text: x.a } })) });
