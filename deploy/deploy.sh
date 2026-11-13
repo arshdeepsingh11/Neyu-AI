@@ -14,4 +14,6 @@ npm run build
 cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp .env .next/standalone/.env
 pm2 reload neyu-health || pm2 start deploy/ecosystem.config.js
 pm2 save
+# Tell Bing/IndexNow about new or changed pages (only when INDEXNOW_KEY is set; never fails the deploy)
+if grep -qE '^\s*INDEXNOW_KEY=.+' .env; then sleep 5; npm run -s indexnow || true; fi
 echo "Deployed $BRANCH: $(git rev-parse --short HEAD)"

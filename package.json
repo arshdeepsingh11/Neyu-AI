@@ -20,7 +20,8 @@
     "db:studio": "prisma studio",
     "staff": "node scripts/staff-admin.mjs",
     "worker": "tsx scripts/worker.ts",
-    "storage:move": "tsx scripts/storage-move.ts"
+    "storage:move": "tsx scripts/storage-move.ts",
+    "indexnow": "node scripts/indexnow.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

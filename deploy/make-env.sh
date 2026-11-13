@@ -32,6 +32,7 @@ else V[TOKEN_ENC_KEY]="$(gen)"; SRC[TOKEN_ENC_KEY]="generated (new server)"; fi
 
 # New random secrets (signing everyone out of the admin console once is fine).
 for k in ADMIN_PASSWORD ADMIN_SESSION_SECRET CRON_SECRET METRICS_TOKEN; do V[$k]="$(gen)"; SRC[$k]="generated"; done
+V[INDEXNOW_KEY]="$(openssl rand -hex 16)"; SRC[INDEXNOW_KEY]="generated (public by design; served at /indexnow.txt)"
 
 # Database: user "neyu" with a new random password, local only.
 DBPASS="$(gen)"
