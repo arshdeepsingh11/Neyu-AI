@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "@phosphor-icons/web/regular";
 import "@phosphor-icons/web/fill";
 import "./globals.css";
@@ -22,7 +22,9 @@ import { PAGES } from "@/lib/seo";
 
 // DM Sans powers body and display text (Glacier / NEYU design system).
 // 300 is included for the design's light weights.
-const dmSans = DM_Sans({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700", "800"], variable: "--font-dm-sans" });
+// DM Sans is self-hosted (src/app/fonts, SIL Open Font License) so builds never
+// depend on reaching Google Fonts — firewalls and network filters can break that.
+const dmSans = localFont({ src: "./fonts/dm-sans-latin-wght-normal.woff2", weight: "100 1000", style: "normal", display: "swap", variable: "--font-dm-sans" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

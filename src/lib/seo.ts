@@ -5,8 +5,10 @@
 // prices, hours or claims here.
 import type { Metadata } from "next";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { LANDINGS } from "@/data/seoLanding";
+import { HEALTH_ANSWERS } from "@/data/healthAnswers";
 
-export type PageKind = "page" | "specialty" | "test" | "service" | "tool" | "about" | "contact" | "collection" | "legal";
+export type PageKind = "page" | "specialty" | "test" | "service" | "tool" | "about" | "contact" | "collection" | "legal" | "landing" | "article";
 
 export interface PageSeo {
   title: string;        // ≤ 60 characters, shown in search results
@@ -116,6 +118,13 @@ const FILLED: Record<string, string> = {
   "/specialties/respiratory-medicine": "Respiratory and sleep medicine in Calgary with the Advanced Respiratory Care Network — care for sleep apnea, snoring, asthma and COPD.",
 };
 for (const [p, d] of Object.entries(FILLED)) if (PAGES[p]) PAGES[p].description = d;
+
+// Search landing pages and Health Answers articles (data in src/data/seoLanding.ts
+// and src/data/healthAnswers.ts).
+for (const l of LANDINGS) PAGES[l.path] = { title: l.title + B, description: l.description, crumb: l.h1, kind: "landing" };
+PAGES["/health-answers"] = { title: "Health Answers — Heart, Blood Pressure & Tests" + B, crumb: "Health Answers", kind: "collection",
+  description: "Plain-language answers about heart symptoms, blood pressure, medical tests, genetics and longevity from NEYU Health in Calgary, with when to see a doctor." };
+for (const a of HEALTH_ANSWERS) PAGES[`/health-answers/${a.slug}`] = { title: a.title + B, description: a.description, crumb: a.q, kind: "article" };
 
 export const abs = (path: string) => (path === "/" ? SITE_URL : SITE_URL + path);
 

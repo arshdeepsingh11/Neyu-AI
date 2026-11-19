@@ -1,6 +1,8 @@
 // Public site identity — one place for the domain and clinic facts used by
 // metadata, sitemap, structured data and llms.txt. Set NEXT_PUBLIC_SITE_URL
 // in .env for other hosts (staging); production is neyuhealth.com.
+import { HEALTH_ANSWERS } from "@/data/healthAnswers";
+
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://neyuhealth.com").replace(/\/+$/, "");
 export const SITE_NAME = "NEYU Health";
 export const SITE_TAGLINE = "Your health. Reimagined.";
@@ -13,6 +15,8 @@ export const PUBLIC_ROUTES: { path: string; priority: number; freq: "weekly" | "
   ...["diagnostics/cardiac-imaging", "diagnostics/monitoring", "diagnostics/pulmonary", "diagnostics/stress-testing", "diagnostics/vascular",
     "specialties/cardiology", "specialties/heart-failure-clinic", "specialties/internal-medicine", "specialties/endocrinology", "specialties/geriatric-medicine", "specialties/pediatric-rheumatology", "specialties/respiratory-medicine", "specialties/nutrition", "specialties/precision-medicine", "specialties/skin-health",
     "cardiac-symptoms", "genomics", "longevity-lab", "lab-results", "explain-diagnosis", "neyu", "services", "explore"].map((p) => ({ path: p, priority: 0.8, freq: "monthly" as const })),
+  ...["aesthetic-clinic-calgary", "dna-test-calgary", "executive-health-check-calgary", "blood-test-at-home-calgary", "holter-monitor-calgary", "biological-age-test-calgary", "health-answers"].map((p) => ({ path: p, priority: 0.8, freq: "monthly" as const })),
+  ...HEALTH_ANSWERS.map((a) => ({ path: `health-answers/${a.slug}`, priority: 0.7, freq: "monthly" as const })),
   ...["about", "careers", "resources", "contact"].map((p) => ({ path: p, priority: 0.6, freq: "monthly" as const })),
   ...["privacy", "terms", "ai-notice", "cookies", "accessibility"].map((p) => ({ path: p, priority: 0.3, freq: "monthly" as const })),
 ];
